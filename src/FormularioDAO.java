@@ -199,4 +199,31 @@ public class FormularioDAO {
         
         return formularios;
     }
+    public List<Formulario> buscarPorProyecto(int idProyecto) {
+    List<Formulario> formularios = new ArrayList<>();
+    String sql = "SELECT * FROM formularios WHERE id_proyecto = ? ORDER BY id";
+    
+    try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        pstmt.setInt(1, idProyecto);
+        ResultSet rs = pstmt.executeQuery();
+        
+        while (rs.next()) {
+            Formulario formulario = new Formulario(
+                rs.getInt("id"),
+                rs.getInt("numero_ayudantes"),
+                rs.getString("nombre_ayudante"),
+                rs.getString("apellido_ayudante"),
+                rs.getString("cedula"),
+                rs.getString("facultad"),
+                rs.getString("estado")
+            );
+            formulario.setIdProyecto(rs.getInt("id_proyecto"));
+            formularios.add(formulario);
+        }
+    } catch (SQLException e) {
+        System.err.println("Error al buscar formularios por proyecto: " + e.getMessage());
+    }
+    
+    return formularios;
+}
 }
