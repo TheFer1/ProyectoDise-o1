@@ -94,12 +94,12 @@ public class ExtractorPDF {
      * @return Número de ayudante extraído, o 0 si no se encuentra
      */
     public static int extraerNumeroDeAyudanteDePDF(JFrame parent) {
-        String valor = extraerCampoDelPDF(parent, "Número de Ayudante");
+        String valor = extraerCampoDelPDF(parent, "Ayudante de investigación");
         
         if (valor != null && !valor.isEmpty()) {
             try {
                 // Extraer solo números del valor
-                String numeros = valor.replaceAll("[^0-9]", "");
+                String numeros = valor.replaceAll("^[^0-9]*([0-9]).*$", "$1");
                 if (!numeros.isEmpty()) {
                     return Integer.parseInt(numeros);
                 }
