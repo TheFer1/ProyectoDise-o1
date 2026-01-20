@@ -34,6 +34,7 @@ CREATE TABLE formularios (
     FOREIGN KEY (id_proyecto) REFERENCES proyectos(id)
 );
 
+
 CREATE TABLE solicitudes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     fecha DATE NOT NULL,
@@ -65,11 +66,13 @@ CREATE TABLE planificacion (
     FOREIGN KEY (id_proyecto) REFERENCES proyectos(id)
 ); 
 
+/*
 ALTER TABLE proyectos ADD COLUMN descripcion TEXT;
 ALTER TABLE proyectos ADD COLUMN tipo TEXT;
 
- ALTER TABLE proyectos ADD COLUMN id_usuario TEXT; 
+ALTER TABLE proyectos ADD COLUMN id_usuario TEXT; 
 
- ALTER TABLE formularios ADD COLUMN id_proyecto INTEGER DEFAULT 0;
+ALTER TABLE formularios ADD COLUMN id_proyecto INTEGER DEFAULT 0;
 
- ALTER TABLE solicitudes ADD COLUMN id_director INTEGER;
+ALTER TABLE solicitudes ADD COLUMN id_director INTEGER;
+ */

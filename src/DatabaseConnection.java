@@ -89,8 +89,8 @@ public class DatabaseConnection {
                     " num_ayudantes INTEGER DEFAULT 0," +
                     " id_usuario INTEGER," +
                     " FOREIGN KEY(id_usuario) REFERENCES usuarios(id)" +
-                    ");");;
-            
+                    ");");
+
             // Tabla de Formularios
             stmt.execute("CREATE TABLE IF NOT EXISTS formularios (" +
                     " id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -99,8 +99,11 @@ public class DatabaseConnection {
                     " apellido_ayudante TEXT NOT NULL," +
                     " cedula TEXT NOT NULL," +
                     " facultad TEXT," +
-                    " estado TEXT DEFAULT 'Pendiente'" +
+                    " estado TEXT DEFAULT 'Pendiente'," +
+                    " id_proyecto INTEGER DEFAULT 0," +
+                    " FOREIGN KEY (id_proyecto) REFERENCES proyectos(id)" +
                     ");");
+
             
             // Tabla de Solicitudes
             stmt.execute("CREATE TABLE IF NOT EXISTS solicitudes (" +
