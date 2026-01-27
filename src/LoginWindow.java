@@ -14,7 +14,7 @@ public class LoginWindow  extends JFrame{
         inicializarComponentes();
     }
   private void inicializarComponentes() {
-        setTitle("Sistema de Gestión Académica - Login");
+        setTitle("Sistema de Gestión De Solicitudes - Login");
         setSize(400, 350);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -27,7 +27,7 @@ public class LoginWindow  extends JFrame{
         // Panel superior con título
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         headerPanel.setBackground(new Color(41, 128, 185)); // Azul
-        JLabel titleLabel = new JLabel("🔐 SISTEMA DE GESTIÓN ACADÉMICA");
+        JLabel titleLabel = new JLabel("Sistema de Gestión De Solicitudes");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel);

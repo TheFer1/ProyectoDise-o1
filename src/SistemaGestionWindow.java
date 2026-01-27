@@ -46,7 +46,7 @@ public class SistemaGestionWindow extends JFrame {
     }
     
     private void inicializarComponentes() {
-        String titulo = "Sistema de Gestión Académica";
+        String titulo = "Sistema de Gestión De Solicitudes";
         if (usuarioActual != null) {
             titulo += " - " + usuarioActual.getNombre() + " (" + rolActual + ")";
         }
