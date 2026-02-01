@@ -76,3 +76,31 @@ ALTER TABLE formularios ADD COLUMN id_proyecto INTEGER DEFAULT 0;
 
 ALTER TABLE solicitudes ADD COLUMN id_director INTEGER;
  */
+
+
+ -- Tabla de Avances
+-- Tabla de Avances para SQLite
+CREATE TABLE avances (
+    idAvance INTEGER PRIMARY KEY AUTOINCREMENT,
+    idProyecto INTEGER NOT NULL,
+    idDirector INTEGER NOT NULL,
+    descripcion VARCHAR(500) NOT NULL,
+    nombreArchivo VARCHAR(255) NOT NULL,
+    rutaArchivo VARCHAR(255) NOT NULL,
+    fechaCarga DATETIME DEFAULT CURRENT_TIMESTAMP,
+    estado VARCHAR(50) DEFAULT 'Pendiente',
+    
+    -- Foreign Keys
+    FOREIGN KEY (idProyecto) REFERENCES proyectos(id),
+    FOREIGN KEY (idDirector) REFERENCES usuarios(id)
+);
+
+-- Índices para mejor performance
+CREATE INDEX idx_proyecto ON avances(idProyecto);
+CREATE INDEX idx_director ON avances(idDirector);
+CREATE INDEX idx_fecha ON avances(fechaCarga);
+
+ALTER TABLE avances ADD COLUMN archivoFirmado VARCHAR(255);
+
+-- Agregar columna tipoPersonal a la tabla formularios
+ALTER TABLE formularios ADD COLUMN tipoPersonal VARCHAR(100) DEFAULT 'Ayudante';

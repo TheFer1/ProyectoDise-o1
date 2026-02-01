@@ -16,7 +16,7 @@ public class FormularioDAO {
      * Insertar un nuevo formulario
      */
     public boolean insertar(Formulario formulario) {
-        String sql = "INSERT INTO formularios(numero_ayudantes, nombre_ayudante, apellido_ayudante, cedula, facultad, estado, id_proyecto) VALUES(?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO formularios(numero_ayudantes, nombre_ayudante, apellido_ayudante, cedula, facultad, estado, id_proyecto, tipoPersonal) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, formulario.getNumeroDeAyudantes());
@@ -26,6 +26,7 @@ public class FormularioDAO {
             pstmt.setString(5, formulario.getFacultad());
             pstmt.setString(6, formulario.getEstado());
             pstmt.setInt(7, formulario.getIdProyecto());
+            pstmt.setString(8, formulario.getTipoPersonal());
             pstmt.executeUpdate();
             System.out.println("Formulario insertado para: " + formulario.getNombreDelAyudante());
             return true;
@@ -56,6 +57,7 @@ public class FormularioDAO {
                     rs.getString("estado")
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
+                formulario.setTipoPersonal(rs.getString("tipoPersonal"));
                 formularios.add(formulario);
             }
         } catch (SQLException e) {
@@ -86,6 +88,7 @@ public class FormularioDAO {
                     rs.getString("estado")
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
+                formulario.setTipoPersonal(rs.getString("tipoPersonal"));
                 return formulario;
             }
         } catch (SQLException e) {
@@ -99,7 +102,7 @@ public class FormularioDAO {
      * Actualizar formulario
      */
     public boolean actualizar(Formulario formulario) {
-        String sql = "UPDATE formularios SET numero_ayudantes = ?, nombre_ayudante = ?, apellido_ayudante = ?, cedula = ?, facultad = ?, estado = ?, id_proyecto = ? WHERE id = ?";
+        String sql = "UPDATE formularios SET numero_ayudantes = ?, nombre_ayudante = ?, apellido_ayudante = ?, cedula = ?, facultad = ?, estado = ?, id_proyecto = ?, tipoPersonal = ? WHERE id = ?";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, formulario.getNumeroDeAyudantes());
@@ -109,7 +112,8 @@ public class FormularioDAO {
             pstmt.setString(5, formulario.getFacultad());
             pstmt.setString(6, formulario.getEstado());
             pstmt.setInt(7, formulario.getIdProyecto());
-            pstmt.setInt(8, formulario.getId());
+            pstmt.setString(8, formulario.getTipoPersonal());
+            pstmt.setInt(9, formulario.getId());
             
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
@@ -157,6 +161,7 @@ public class FormularioDAO {
                     rs.getString("estado")
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
+                formulario.setTipoPersonal(rs.getString("tipoPersonal"));
                 formularios.add(formulario);
             }
         } catch (SQLException e) {
@@ -191,6 +196,7 @@ public class FormularioDAO {
                     rs.getString("estado")
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
+                formulario.setTipoPersonal(rs.getString("tipoPersonal"));
                 formularios.add(formulario);
             }
         } catch (SQLException e) {
@@ -200,30 +206,31 @@ public class FormularioDAO {
         return formularios;
     }
     public List<Formulario> buscarPorProyecto(int idProyecto) {
-    List<Formulario> formularios = new ArrayList<>();
-    String sql = "SELECT * FROM formularios WHERE id_proyecto = ? ORDER BY id";
-    
-    try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-        pstmt.setInt(1, idProyecto);
-        ResultSet rs = pstmt.executeQuery();
+        List<Formulario> formularios = new ArrayList<>();
+        String sql = "SELECT * FROM formularios WHERE id_proyecto = ? ORDER BY id";
         
-        while (rs.next()) {
-            Formulario formulario = new Formulario(
-                rs.getInt("id"),
-                rs.getInt("numero_ayudantes"),
-                rs.getString("nombre_ayudante"),
-                rs.getString("apellido_ayudante"),
-                rs.getString("cedula"),
-                rs.getString("facultad"),
-                rs.getString("estado")
-            );
-            formulario.setIdProyecto(rs.getInt("id_proyecto"));
-            formularios.add(formulario);
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, idProyecto);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Formulario formulario = new Formulario(
+                    rs.getInt("id"),
+                    rs.getInt("numero_ayudantes"),
+                    rs.getString("nombre_ayudante"),
+                    rs.getString("apellido_ayudante"),
+                    rs.getString("cedula"),
+                    rs.getString("facultad"),
+                    rs.getString("estado")
+                );
+                formulario.setIdProyecto(rs.getInt("id_proyecto"));
+                formulario.setTipoPersonal(rs.getString("tipoPersonal"));
+                formularios.add(formulario);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al buscar formularios por proyecto: " + e.getMessage());
         }
-    } catch (SQLException e) {
-        System.err.println("Error al buscar formularios por proyecto: " + e.getMessage());
+        
+        return formularios;
     }
-    
-    return formularios;
-}
 }

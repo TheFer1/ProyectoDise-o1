@@ -8,8 +8,8 @@ import java.util.List;
 public class ControladorSolicitudes {
     private Director director;
     private FormularioDAO formularioDAO;
-    private SolicitudDAO solicitudDAO;
     private ProyectoDAO proyectoDAO;
+    private AvanceDAO avanceDAO;
     
     /**
      * Constructor que recibe el director actual
@@ -17,7 +17,6 @@ public class ControladorSolicitudes {
     public ControladorSolicitudes(Director director) {
         this.director = director;
         this.formularioDAO = new FormularioDAO();
-        this.solicitudDAO = new SolicitudDAO();
         this.proyectoDAO = new ProyectoDAO();
     }
     

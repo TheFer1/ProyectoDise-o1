@@ -23,6 +23,7 @@ public class SistemaGestionWindow extends JFrame {
     private FormularioDAO formularioDAO;
     private SolicitudDAO solicitudDAO;
     private NotificacionDAO notificacionDAO;
+    private AvanceDAO avanceDAO;
     
     // Constructor original para compatibilidad
     public SistemaGestionWindow() {
@@ -43,6 +44,7 @@ public class SistemaGestionWindow extends JFrame {
         formularioDAO = new FormularioDAO();
         solicitudDAO = new SolicitudDAO();
         notificacionDAO = new NotificacionDAO();
+        avanceDAO = new AvanceDAO();
     }
     
     private void inicializarComponentes() {
@@ -67,13 +69,13 @@ public class SistemaGestionWindow extends JFrame {
         if ("Jefatura".equals(rolActual)) {
             tabbedPane.addTab("📁 Proyectos y Directores", crearPanelProyectosJefatura());
             tabbedPane.addTab("👥 Usuarios", crearPanelUsuarios());
-            tabbedPane.addTab("📋 Solicitudes", crearPanelSolicitudesJefatura());
+            tabbedPane.addTab("📋 Avances", crearPanelAvancesJefatura());
         }
         
         // Solo Director puede ver/editar sus proyectos
         if (puedeManejarProyectos()) {
             tabbedPane.addTab("📁 Mis Proyectos", crearPanelProyectos());
-            tabbedPane.addTab("📨 Enviar Solicitud", crearPanelEnviarSolicitudDirector());
+            tabbedPane.addTab("� Guardar Avance", crearPanelGuardarAvance());
         }
         
         // Solo Jefatura puede ver formularios
@@ -402,7 +404,14 @@ public class SistemaGestionWindow extends JFrame {
         JTextField txtNombre = new JTextField(20);
         JTextField txtCodigo = new JTextField(20);
         JTextField txtDescripcion = new JTextField(20);
-        JTextField txtTipo = new JTextField(20);
+        JComboBox<String> cmbTipo = new JComboBox<>(new String[]{
+            "Semilla",
+            "Interno",
+            "Grupales",
+            "Vinculación",
+            "Confinanciamiento",
+            "Transferencia Tecnológica"
+        });
         JTextField txtFechaInicio = new JTextField(20);
         JTextField txtFechaFin = new JTextField(20);
         JSpinner spnAyudantes = new JSpinner(new SpinnerNumberModel(0, 0, 100, 1));
@@ -430,7 +439,7 @@ public class SistemaGestionWindow extends JFrame {
         gbc.gridx = 0; gbc.gridy = 3;
         formPanel.add(new JLabel("Tipo:"), gbc);
         gbc.gridx = 1;
-        formPanel.add(txtTipo, gbc);
+        formPanel.add(cmbTipo, gbc);
         
         gbc.gridx = 0; gbc.gridy = 4;
         formPanel.add(new JLabel("Fecha Inicio (YYYY-MM-DD):"), gbc);
@@ -480,12 +489,12 @@ public class SistemaGestionWindow extends JFrame {
         
         // Evento para botón de subir PDF
         btnSubirPDF.addActionListener(e -> {
-            int numeroAyudantes = ExtractorPDF.extraerNumeroDeAyudanteDePDF(this);
-            if (numeroAyudantes > 0) {
-                spnAyudantes.setValue(numeroAyudantes);
-                JOptionPane.showMessageDialog(panel, "✓ Número de ayudantes extraído: " + numeroAyudantes, "Éxito", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                JOptionPane.showMessageDialog(panel, "No se pudo extraer el número de ayudantes del PDF", "Error", JOptionPane.WARNING_MESSAGE);
+         int numeroAyudantes = ExtractorPDF.extraerNumeroDeAyudanteDePDF(this);
+             if (numeroAyudantes > 0) {
+                 spnAyudantes.setValue(numeroAyudantes);
+                 JOptionPane.showMessageDialog(panel, "✓ Número de ayudantes extraído: " + numeroAyudantes, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+             } else {
+                 JOptionPane.showMessageDialog(panel, "No se pudo extraer el número de ayudantes del PDF", "Error", JOptionPane.WARNING_MESSAGE);
             }
         });
         
@@ -494,7 +503,7 @@ public class SistemaGestionWindow extends JFrame {
             String nombre = txtNombre.getText().trim();
             String codigo = txtCodigo.getText().trim();
             String descripcion = txtDescripcion.getText().trim();
-            String tipo = txtTipo.getText().trim();
+            String tipo = (String) cmbTipo.getSelectedItem();
             String fechaInicioStr = txtFechaInicio.getText().trim();
             String fechaFinStr = txtFechaFin.getText().trim();
             int ayudantes = (int) spnAyudantes.getValue();
@@ -534,7 +543,7 @@ public class SistemaGestionWindow extends JFrame {
             if (proyectoDAO.insertar(proyecto)) {
                 JOptionPane.showMessageDialog(panel, "✓ Proyecto agregado exitosamente y asociado a " + usuarioActual.getNombre(), "Éxito", JOptionPane.INFORMATION_MESSAGE);
                 cargarProyectos(modelo);
-                limpiarCamposProyecto(txtNombre, txtCodigo, txtDescripcion, txtTipo, txtFechaInicio, txtFechaFin);
+                limpiarCamposProyecto(txtNombre, txtCodigo, txtDescripcion, cmbTipo, txtFechaInicio, txtFechaFin);
             }
         });
         
@@ -552,7 +561,7 @@ public class SistemaGestionWindow extends JFrame {
         });
         
         btnLimpiar.addActionListener(e -> {
-            limpiarCamposProyecto(txtNombre, txtCodigo, txtDescripcion, txtTipo, txtFechaInicio, txtFechaFin);
+            limpiarCamposProyecto(txtNombre, txtCodigo, txtDescripcion, cmbTipo, txtFechaInicio, txtFechaFin);
         });
         
         panel.add(formPanel, BorderLayout.NORTH);
@@ -564,12 +573,12 @@ public class SistemaGestionWindow extends JFrame {
     }
     
     private void limpiarCamposProyecto(JTextField txtNombre, JTextField txtCodigo, 
-                                       JTextField txtDescripcion, JTextField txtTipo,
+                                       JTextField txtDescripcion, JComboBox<String> cmbTipo,
                                        JTextField txtFechaInicio, JTextField txtFechaFin) {
         txtNombre.setText("");
         txtCodigo.setText("");
         txtDescripcion.setText("");
-        txtTipo.setText("");
+        cmbTipo.setSelectedIndex(0);
         txtFechaInicio.setText("YYYY-MM-DD");
         txtFechaFin.setText("YYYY-MM-DD");
     }
@@ -601,6 +610,142 @@ public class SistemaGestionWindow extends JFrame {
     private JPanel crearPanelFormularios() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // ===== SECCIÓN 1: FORMULARIO PARA REGISTRAR AYUDANTES (solo para Director) =====
+        JPanel formularioAyudantesPanel = null;
+        
+        if ("Director".equals(rolActual)) {
+            formularioAyudantesPanel = new JPanel(new BorderLayout(5, 5));
+            formularioAyudantesPanel.setBorder(BorderFactory.createTitledBorder("Registrar Ayudantes"));
+            
+            JPanel formPanel = new JPanel(new GridBagLayout());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            
+            Director director = new Director(usuarioActual.getId(), usuarioActual.getNombre(),
+                usuarioActual.getApellido(), usuarioActual.getCorreo(), usuarioActual.getContraseña());
+            ControladorSolicitudes controlador = new ControladorSolicitudes(director);
+            
+            JComboBox<String> cbProyectoAyudantes = new JComboBox<>();
+            JComboBox<String> cmbTipoPersonal = new JComboBox<>(new String[]{
+                "Ayudante de Investigación",
+                "Técnico en Investigación",
+                "Asistente de Investigación"
+            });
+            JTextField txtNombreAyudante = new JTextField(15);
+            JTextField txtApellidoAyudante = new JTextField(15);
+            JTextField txtCedulaAyudante = new JTextField(15);
+            JTextField txtFacultadAyudante = new JTextField(15);
+            JSpinner spnNumAyudantes = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+            
+            // Cargar proyectos del director
+            List<Proyecto> proyectosDirector = controlador.obtenerProyectos();
+            for (Proyecto p : proyectosDirector) {
+                cbProyectoAyudantes.addItem(p.getId() + " - " + p.getNombre());
+            }
+            
+            gbc.gridx = 0; gbc.gridy = 0;
+            formPanel.add(new JLabel("Proyecto:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(cbProyectoAyudantes, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 1;
+            formPanel.add(new JLabel("Tipo de Personal:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(cmbTipoPersonal, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 2;
+            formPanel.add(new JLabel("N° de Ayudantes:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(spnNumAyudantes, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 3;
+            formPanel.add(new JLabel("Nombre:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(txtNombreAyudante, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 4;
+            formPanel.add(new JLabel("Apellido:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(txtApellidoAyudante, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 5;
+            formPanel.add(new JLabel("Cédula:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(txtCedulaAyudante, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 6;
+            formPanel.add(new JLabel("Facultad:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(txtFacultadAyudante, gbc);
+            
+            JPanel btnAyudantesPanel = new JPanel(new FlowLayout());
+            JButton btnGuardarAyudante = new JButton("✓ Guardar");
+            JButton btnLimpiarAyudante = new JButton("🔄 Limpiar");
+            
+            btnAyudantesPanel.add(btnGuardarAyudante);
+            btnAyudantesPanel.add(btnLimpiarAyudante);
+            
+            gbc.gridx = 0; gbc.gridy = 7;
+            gbc.gridwidth = 2;
+            formPanel.add(btnAyudantesPanel, gbc);
+            
+            // Eventos
+            btnGuardarAyudante.addActionListener(e -> {
+                if (cbProyectoAyudantes.getSelectedItem() == null) {
+                    JOptionPane.showMessageDialog(panel, "Debe seleccionar un proyecto", "Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                String proyectoSel = (String) cbProyectoAyudantes.getSelectedItem();
+                int idProyecto = Integer.parseInt(proyectoSel.split(" - ")[0]);
+                int numAyudantes = (int) spnNumAyudantes.getValue();
+                String nombre = txtNombreAyudante.getText().trim();
+                String apellido = txtApellidoAyudante.getText().trim();
+                String cedula = txtCedulaAyudante.getText().trim();
+                String facultad = txtFacultadAyudante.getText().trim();
+                String tipoPersonal = (String) cmbTipoPersonal.getSelectedItem();
+
+                if (nombre.isEmpty() || apellido.isEmpty() || cedula.isEmpty() || facultad.isEmpty()) {
+                    JOptionPane.showMessageDialog(panel, "Complete todos los campos", "Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                // Crear formulario con tipo de personal
+                Formulario formulario = new Formulario(numAyudantes, nombre, apellido, cedula, facultad);
+                formulario.setIdProyecto(idProyecto);
+                formulario.setTipoPersonal(tipoPersonal);
+                
+                // Guardar en BD
+                if (formularioDAO.insertar(formulario)) {
+                    JOptionPane.showMessageDialog(panel, "✓ Personal registrado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Limpiar campos
+                    txtNombreAyudante.setText("");
+                    txtApellidoAyudante.setText("");
+                    txtCedulaAyudante.setText("");
+                    txtFacultadAyudante.setText("");
+                    spnNumAyudantes.setValue(1);
+                    cmbTipoPersonal.setSelectedIndex(0);
+                    
+                    // Recargar tabla de formularios
+                    cargarFormulariosEnTabla(panel);
+                } else {
+                    JOptionPane.showMessageDialog(panel, "Error al guardar el personal", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            
+            btnLimpiarAyudante.addActionListener(e -> {
+                txtNombreAyudante.setText("");
+                txtApellidoAyudante.setText("");
+                txtCedulaAyudante.setText("");
+                txtFacultadAyudante.setText("");
+                spnNumAyudantes.setValue(1);
+            });
+            
+            formularioAyudantesPanel.add(formPanel, BorderLayout.CENTER);
+        }
         
         // Variables para tabla y gestión de estado
         JComboBox<String> cbEstado = new JComboBox<>(new String[]{"Pendiente", "Aprobado", "Rechazado"});
@@ -646,7 +791,7 @@ public class SistemaGestionWindow extends JFrame {
         }
         
         // Tabla - siempre con todas las columnas; ocultamos algunas en la vista
-        String[] columnas = new String[]{"ID", "N° Ayudantes", "Nombre", "Apellido", "Cédula", "Facultad", "Estado", "IdProyecto", "Proyecto", "Director"};
+        String[] columnas = new String[]{"ID", "N° Ayudantes", "Nombre", "Apellido", "Cédula", "Facultad", "Tipo Personal", "Estado", "IdProyecto", "Proyecto", "Director"};
         DefaultTableModel modelo = new DefaultTableModel(columnas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -661,9 +806,9 @@ public class SistemaGestionWindow extends JFrame {
         // Ocultar columnas en la vista
         ocultarColumna(tabla, 0); // Ocultar ID
         ocultarColumna(tabla, 1); // Ocultar N° Ayudantes
-        ocultarColumna(tabla, 7); // Ocultar IdProyecto
+        ocultarColumna(tabla, 8); // Ocultar IdProyecto
         if (!puedeManejarUsuarios()) { // Director no ve Estado
-            ocultarColumna(tabla, 6);
+            ocultarColumna(tabla, 7);
         }
         
         // Listener para selección (solo para Jefatura)
@@ -671,12 +816,19 @@ public class SistemaGestionWindow extends JFrame {
             tabla.getSelectionModel().addListSelectionListener(e -> {
                 if (!e.getValueIsAdjusting() && tabla.getSelectedRow() != -1) {
                     int fila = tabla.getSelectedRow();
-                    cbEstado.setSelectedItem(modelo.getValueAt(fila, 6));
+                    cbEstado.setSelectedItem(modelo.getValueAt(fila, 7));
                 }
             });
         }
         
-        panel.add(scrollPane, BorderLayout.CENTER);
+        // Panel central con formulario de ayudantes (si es Director) y tabla
+        JPanel centerPanel = new JPanel(new BorderLayout(10, 10));
+        if (formularioAyudantesPanel != null) {
+            centerPanel.add(formularioAyudantesPanel, BorderLayout.NORTH);
+        }
+        centerPanel.add(scrollPane, BorderLayout.CENTER);
+        
+        panel.add(centerPanel, BorderLayout.CENTER);
         
         cargarFormularios(modelo);
         
@@ -741,6 +893,7 @@ public class SistemaGestionWindow extends JFrame {
                 f.getApellidoDelAyudante(), 
                 f.getCedula(), 
                 f.getFacultad(), 
+                f.getTipoPersonal(),
                 f.getEstado(),
                 f.getIdProyecto(),
                 nombreProyecto,
@@ -907,156 +1060,7 @@ public class SistemaGestionWindow extends JFrame {
         }
     }
     
-    /**
-     * Panel de Solicitudes para Director (solo sus solicitudes)
-     */
-    private JPanel crearPanelSolicitudesDirector() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Panel de formulario para crear nueva solicitud
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createTitledBorder("Nueva Solicitud"));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        JComboBox<String> cbTipo = new JComboBox<>(new String[]{"Permiso", "Documento"});
-        JComboBox<String> cbDirector = new JComboBox<>();
-        JTextField txtAsunto = new JTextField(20);
-        JTextField txtDetalle = new JTextField(20);
-        
-        // Cargar lista de Directores
-        List<Usuario> directores = usuarioDAO.obtenerTodos().stream()
-            .filter(u -> "Director".equals(u.getTipo()))
-            .toList();
-        
-        for (Usuario director : directores) {
-            cbDirector.addItem(director.getId() + " - " + director.getNombre() + " " + director.getApellido());
-        }
-        
-        gbc.gridx = 0; gbc.gridy = 0;
-        formPanel.add(new JLabel("Tipo:"), gbc);
-        gbc.gridx = 1;
-        formPanel.add(cbTipo, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 1;
-        formPanel.add(new JLabel("Director:"), gbc);
-        gbc.gridx = 1;
-        formPanel.add(cbDirector, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 2;
-        formPanel.add(new JLabel("Asunto:"), gbc);
-        gbc.gridx = 1;
-        formPanel.add(txtAsunto, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 3;
-        formPanel.add(new JLabel("Detalle (Permiso/Documento):"), gbc);
-        gbc.gridx = 1;
-        formPanel.add(txtDetalle, gbc);
-        
-        // Botones
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton btnAgregar = new JButton("✓ Registrar Solicitud");
-        JButton btnLimpiar = new JButton("Limpiar");
-        
-        btnPanel.add(btnAgregar);
-        btnPanel.add(btnLimpiar);
-        
-        gbc.gridx = 0; gbc.gridy = 4;
-        gbc.gridwidth = 2;
-        formPanel.add(btnPanel, gbc);
-        
-        // Tabla de solicitudes del Director
-        String[] columnas = {"ID", "Fecha", "Asunto", "Tipo", "Detalle", "Estado"};
-        DefaultTableModel modelo = new DefaultTableModel(columnas, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        
-        JTable tabla = new JTable(modelo);
-        JScrollPane scrollPane = new JScrollPane(tabla);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Solicitudes"));
-        
-        // Eventos
-        btnAgregar.addActionListener(e -> {
-            String asunto = txtAsunto.getText().trim();
-            String detalle = txtDetalle.getText().trim();
-            String tipo = (String) cbTipo.getSelectedItem();
-            String directorSeleccionado = (String) cbDirector.getSelectedItem();
-            
-            if (asunto.isEmpty() || detalle.isEmpty() || directorSeleccionado == null) {
-                JOptionPane.showMessageDialog(panel, "Complete todos los campos", "Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            
-            // Extraer ID del director (formato: "ID - Nombre Apellido")
-            int idDirector = Integer.parseInt(directorSeleccionado.split(" - ")[0]);
-            
-            // Crear solicitud especializada según el tipo
-            Solicitud solicitud;
-            if (tipo.equals("Permiso")) {
-                solicitud = new SolicitarPermiso(asunto, usuarioActual.getId(), detalle);
-            } else {
-                solicitud = new SolicitarDocumento(asunto, usuarioActual.getId(), detalle);
-            }
-            solicitud.setIdDirector(idDirector);
-            
-            String codigoPermiso = tipo.equals("Permiso") ? detalle : null;
-            String tipoDocumento = tipo.equals("Documento") ? detalle : null;
-            
-            if (solicitudDAO.insertar(solicitud, tipo, codigoPermiso, tipoDocumento)) {
-                // Verificar si hay directores con formularios de ayudantes incompletos
-                verificarFormulariosDirectores();
-                
-                JOptionPane.showMessageDialog(panel, "✓ Solicitud enviada exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                txtAsunto.setText("");
-                txtDetalle.setText("");
-                cargarSolicitudesDirector(modelo);
-            }
-        });
-        
-        btnLimpiar.addActionListener(e -> {
-            txtAsunto.setText("");
-            txtDetalle.setText("");
-        });
-        
-        panel.add(formPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        
-        cargarSolicitudesDirector(modelo);
-        
-        return panel;
-    }
-    
-    private void cargarSolicitudesDirector(DefaultTableModel modelo) {
-        modelo.setRowCount(0);
-        
-        if (usuarioActual != null) {
-            List<Solicitud> solicitudes = solicitudDAO.buscarPorUsuario(usuarioActual.getId());
-            for (Solicitud s : solicitudes) {
-                // Determinar detalle según tipo
-                String detalle = "";
-                if ("Permiso".equals(s.getTipo()) && s.getCodigoPermiso() != null) {
-                    detalle = s.getCodigoPermiso();
-                } else if ("Documento".equals(s.getTipo()) && s.getTipoDocumento() != null) {
-                    detalle = s.getTipoDocumento();
-                }
-                
-                modelo.addRow(new Object[]{
-                    s.getIdSolicitud(), 
-                    s.getFecha(), 
-                    s.getAsunto(), 
-                    s.getTipo(),
-                    detalle,
-                    s.getEstadoEmisionDest()
-                });
-            }
-        }
-    }
-    
+
     // ======================== PANEL NOTIFICACIONES ========================
     
     private JPanel crearPanelNotificaciones() {
@@ -1174,78 +1178,15 @@ public class SistemaGestionWindow extends JFrame {
         JPanel instruccionesPanel = new JPanel(new BorderLayout());
         instruccionesPanel.setBorder(BorderFactory.createTitledBorder("📋 Instrucciones"));
         JLabel lblInstrucciones = new JLabel(
-            "<html><b>Para enviar una solicitud a Jefatura, primero complete el formulario de ayudantes.</b><br>" +
-            "Luego podrá enviar su solicitud con la información del asunto y detalles.</html>"
+            "<html><b>Complete el formulario para enviar una solicitud a Jefatura.</b><br>" +
+            "Especifique el tipo de solicitud, asunto y detalles.</html>"
         );
         lblInstrucciones.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         instruccionesPanel.add(lblInstrucciones, BorderLayout.CENTER);
         
-        // Panel principal con dos secciones
-        JPanel mainPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        
-        // ===== SECCIÓN 1: FORMULARIO DE AYUDANTES =====
-        JPanel formularioPanel = new JPanel(new BorderLayout(5, 5));
-        formularioPanel.setBorder(BorderFactory.createTitledBorder("Paso 1: Formulario de Ayudantes"));
-        
-        JPanel formAyudantesPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
-        JSpinner spnNumAyudantes = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
-        JTextField txtNombreAyudante = new JTextField(15);
-        JTextField txtApellidoAyudante = new JTextField(15);
-        JTextField txtCedula = new JTextField(15);
-        JTextField txtFacultad = new JTextField(15);
-        JComboBox<String> cbProyecto = new JComboBox<>();
-        
-        // Cargar proyectos del director usando controlador
-        List<Proyecto> proyectosDirector = controlador.obtenerProyectos();
-        for (Proyecto p : proyectosDirector) {
-            cbProyecto.addItem(p.getId() + " - " + p.getNombre());
-        }
-        
-        gbc.gridx = 0; gbc.gridy = 0;
-        formAyudantesPanel.add(new JLabel("Proyecto:"), gbc);
-        gbc.gridx = 1;
-        formAyudantesPanel.add(cbProyecto, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 1;
-        formAyudantesPanel.add(new JLabel("N° de Ayudantes:"), gbc);
-        gbc.gridx = 1;
-        formAyudantesPanel.add(spnNumAyudantes, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 2;
-        formAyudantesPanel.add(new JLabel("Nombre:"), gbc);
-        gbc.gridx = 1;
-        formAyudantesPanel.add(txtNombreAyudante, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 3;
-        formAyudantesPanel.add(new JLabel("Apellido:"), gbc);
-        gbc.gridx = 1;
-        formAyudantesPanel.add(txtApellidoAyudante, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 4;
-        formAyudantesPanel.add(new JLabel("Cédula:"), gbc);
-        gbc.gridx = 1;
-        formAyudantesPanel.add(txtCedula, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 5;
-        formAyudantesPanel.add(new JLabel("Facultad:"), gbc);
-        gbc.gridx = 1;
-        formAyudantesPanel.add(txtFacultad, gbc);
-        
-        JButton btnGuardar = new JButton("✓ Guardar");
-        btnGuardar.setFont(new Font("Arial", Font.BOLD, 12));
-        gbc.gridx = 0; gbc.gridy = 6;
-        gbc.gridwidth = 2;
-        formAyudantesPanel.add(btnGuardar, gbc);
-        
-        formularioPanel.add(formAyudantesPanel, BorderLayout.CENTER);
-        
         // ===== SECCIÓN 2: ENVIAR SOLICITUD =====
         JPanel solicitudPanel = new JPanel(new BorderLayout(5, 5));
-        solicitudPanel.setBorder(BorderFactory.createTitledBorder("Paso 2: Enviar Solicitud a Jefatura"));
+        solicitudPanel.setBorder(BorderFactory.createTitledBorder("Enviar Solicitud a Jefatura"));
         
         JPanel formSolicitudPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc2 = new GridBagConstraints();
@@ -1283,18 +1224,16 @@ public class SistemaGestionWindow extends JFrame {
         gbc2.weighty = 1.0;
         formSolicitudPanel.add(scrollDescripcion, gbc2);
         
-        // El envío se controla con el mismo botón "Guardar" (Paso 1 obligatorio)
+        // Botón Enviar Solicitud
+        JButton btnEnviar = new JButton("📨 Enviar Solicitud");
+        btnEnviar.setFont(new Font("Arial", Font.BOLD, 12));
         gbc2.gridx = 0; gbc2.gridy = 4;
         gbc2.gridwidth = 2;
         gbc2.fill = GridBagConstraints.HORIZONTAL;
         gbc2.weighty = 0;
-        formSolicitudPanel.add(new JLabel(" "), gbc2); // Espaciador
+        formSolicitudPanel.add(btnEnviar, gbc2);
         
         solicitudPanel.add(formSolicitudPanel, BorderLayout.CENTER);
-        
-        // Agregar ambas secciones al panel principal
-        mainPanel.add(formularioPanel);
-        mainPanel.add(solicitudPanel);
         
         // ===== TABLA DE SOLICITUDES =====
         // Panel contenedor para la tabla
@@ -1332,54 +1271,16 @@ public class SistemaGestionWindow extends JFrame {
             }
         };
         
-        // Eventos
-        // Evento para guardar formulario usando controlador
-        btnGuardar.addActionListener(e -> {
-            if (cbProyecto.getSelectedItem() == null) {
-                JOptionPane.showMessageDialog(panel, "Debe seleccionar un proyecto", "Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            String proyectoSel = (String) cbProyecto.getSelectedItem();
-            int idProyecto = Integer.parseInt(proyectoSel.split(" - ")[0]);
-            int numAyudantes = (int) spnNumAyudantes.getValue();
-            String nombre = txtNombreAyudante.getText().trim();
-            String apellido = txtApellidoAyudante.getText().trim();
-            String cedula = txtCedula.getText().trim();
-            String facultad = txtFacultad.getText().trim();
-
-            // Usar controlador para registrar formulario
-            ResultadoOperacion resultado = controlador.registrarFormulario(
-                idProyecto, numAyudantes, nombre, apellido, cedula, facultad
-            );
-
-            if (!resultado.isExitoso()) {
-                int tipoMensaje = resultado.esError() ? JOptionPane.ERROR_MESSAGE : JOptionPane.WARNING_MESSAGE;
-                JOptionPane.showMessageDialog(panel, resultado.getMensaje(), "Error", tipoMensaje);
-                return;
-            }
-
-            // Limpiar campos tras guardar
-            txtNombreAyudante.setText("");
-            txtApellidoAyudante.setText("");
-            txtCedula.setText("");
-            txtFacultad.setText("");
-            spnNumAyudantes.setValue(1);
-
-            // Verificar y notificar si faltan ayudantes solo para este proyecto
-            verificarFormulariosProyecto(idProyecto);
-
-            // Mostrar mensaje de éxito
-            JOptionPane.showMessageDialog(panel, resultado.getMensaje(), "Éxito", JOptionPane.INFORMATION_MESSAGE);
-
-            // Paso 2 opcional: envío de solicitud
+        // Eventos - Solo envío de solicitud
+        btnEnviar.addActionListener(e -> {
             String tipoSolicitud = (String) cbTipoSolicitud.getSelectedItem();
             String asunto = txtAsunto.getText().trim();
             String detalle = txtDetalle.getText().trim();
             String descripcion = txtDescripcion.getText().trim();
 
             if (asunto.isEmpty()) {
-                return; // Ya se guardó el formulario, no enviar solicitud
+                JOptionPane.showMessageDialog(panel, "Ingrese el asunto de la solicitud", "Error", JOptionPane.WARNING_MESSAGE);
+                return;
             }
 
             if ("Formulario de Ayudantes".equals(tipoSolicitud)) {
@@ -1438,16 +1339,558 @@ public class SistemaGestionWindow extends JFrame {
                 }
             }
         });
+
         
         // Cargar datos iniciales
         cargarSolicitudes.run();
         
         // Ensamblar panel final
         panel.add(instruccionesPanel, BorderLayout.NORTH);
-        panel.add(mainPanel, BorderLayout.CENTER);
+        panel.add(solicitudPanel, BorderLayout.CENTER);
         panel.add(tablaPanel, BorderLayout.SOUTH);
         
         return panel;
     }
-
+    
+    // ======================== PANEL GUARDAR AVANCE ========================
+    
+    private JPanel crearPanelGuardarAvance() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Panel de carga de archivo
+        JPanel uploadPanel = new JPanel(new GridBagLayout());
+        uploadPanel.setBorder(BorderFactory.createTitledBorder("Cargar Avance"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        JComboBox<String> cbProyectoAvance = new JComboBox<>();
+        JTextField txtDescripcion = new JTextField(25);
+        JLabel lblArchivo = new JLabel("Ningún archivo seleccionado");
+        JButton btnSeleccionarArchivo = new JButton("📁 Seleccionar Archivo");
+        JButton btnCargar = new JButton("📤 Cargar Avance");
+        JButton btnLimpiar = new JButton("🔄 Limpiar");
+        
+        // Cargar proyectos del director
+        Director director = new Director(usuarioActual.getId(), usuarioActual.getNombre(),
+            usuarioActual.getApellido(), usuarioActual.getCorreo(), usuarioActual.getContraseña());
+        ControladorSolicitudes controlador = new ControladorSolicitudes(director);
+        List<Proyecto> proyectosDirector = controlador.obtenerProyectos();
+        
+        for (Proyecto p : proyectosDirector) {
+            cbProyectoAvance.addItem(p.getId() + " - " + p.getNombre());
+        }
+        
+        // Variable para almacenar el archivo seleccionado
+        final java.io.File[] archivoSeleccionado = {null};
+        
+        // Tabla de avances - DECLARAR PRIMERO
+        String[] columnas = {"ID", "Proyecto", "Descripción", "Archivo", "Fecha", "Director"};
+        DefaultTableModel modeloAvances = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
+        JTable tablaAvances = new JTable(modeloAvances);
+        JScrollPane scrollPane = new JScrollPane(tablaAvances);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Avances Cargados"));
+        
+        gbc.gridx = 0; gbc.gridy = 0;
+        uploadPanel.add(new JLabel("Proyecto:"), gbc);
+        gbc.gridx = 1;
+        uploadPanel.add(cbProyectoAvance, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 1;
+        uploadPanel.add(new JLabel("Descripción:"), gbc);
+        gbc.gridx = 1;
+        uploadPanel.add(txtDescripcion, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 2;
+        uploadPanel.add(new JLabel("Archivo:"), gbc);
+        gbc.gridx = 1;
+        uploadPanel.add(lblArchivo, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        uploadPanel.add(btnSeleccionarArchivo, gbc);
+        
+        // Evento para seleccionar archivo
+        btnSeleccionarArchivo.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setAcceptAllFileFilterUsed(false);
+            fileChooser.addChoosableFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("PDF", "pdf"));
+            fileChooser.addChoosableFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Word", "doc", "docx"));
+            fileChooser.addChoosableFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel", "xls", "xlsx"));
+            fileChooser.addChoosableFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Imágenes", "jpg", "png", "gif"));
+            
+            int resultado = fileChooser.showOpenDialog(panel);
+            if (resultado == JFileChooser.APPROVE_OPTION) {
+                archivoSeleccionado[0] = fileChooser.getSelectedFile();
+                lblArchivo.setText(archivoSeleccionado[0].getName());
+            }
+        });
+        
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        uploadPanel.add(btnCargar, gbc);
+        gbc.gridx = 1;
+        uploadPanel.add(btnLimpiar, gbc);
+        
+        // Evento para cargar avance
+        btnCargar.addActionListener(e -> {
+            if (cbProyectoAvance.getSelectedItem() == null) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un proyecto", "Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            if (archivoSeleccionado[0] == null) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un archivo", "Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String descripcion = txtDescripcion.getText().trim();
+            if (descripcion.isEmpty()) {
+                JOptionPane.showMessageDialog(panel, "Ingrese una descripción del avance", "Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String proyectoSel = (String) cbProyectoAvance.getSelectedItem();
+            int idProyecto = Integer.parseInt(proyectoSel.split(" - ")[0]);
+            
+            try {
+                // Crear carpeta de avances si no existe
+                java.io.File carpetaAvances = new java.io.File("avances");
+                if (!carpetaAvances.exists()) {
+                    carpetaAvances.mkdir();
+                }
+                
+                // Generar nombre único para el archivo
+                String timestamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+                String nombreArchivo = timestamp + "_" + archivoSeleccionado[0].getName();
+                String rutaDestino = "avances/" + nombreArchivo;
+                
+                // Copiar archivo
+                java.nio.file.Files.copy(archivoSeleccionado[0].toPath(), 
+                    new java.io.File(rutaDestino).toPath(), 
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                
+                // Guardar información en BD
+                Avance avance = new Avance(idProyecto, usuarioActual.getId(), descripcion, nombreArchivo, rutaDestino);
+                
+                if (avanceDAO.insertar(avance)) {
+                    JOptionPane.showMessageDialog(panel, 
+                        "✓ Avance cargado exitosamente\n" + 
+                        "Archivo: " + nombreArchivo + "\n" +
+                        "Descripción: " + descripcion,
+                        "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Limpiar campos
+                    txtDescripcion.setText("");
+                    lblArchivo.setText("Ningún archivo seleccionado");
+                    archivoSeleccionado[0] = null;
+                    
+                    // Recargar tabla de avances
+                    cargarAvances(modeloAvances);
+                } else {
+                    JOptionPane.showMessageDialog(panel, "Error al guardar el avance en la BD", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(panel, "Error al cargar el archivo: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        btnLimpiar.addActionListener(e -> {
+            txtDescripcion.setText("");
+            lblArchivo.setText("Ningún archivo seleccionado");
+            archivoSeleccionado[0] = null;
+        });
+        
+        // Panel de acciones
+        JPanel accionesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnDescargar = new JButton("⬇️ Descargar");
+        JButton btnEliminar = new JButton("🗑️ Eliminar");
+        
+        btnDescargar.addActionListener(e -> {
+            int fila = tablaAvances.getSelectedRow();
+            if (fila == -1) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un avance para descargar", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Obtener el avance completo de la BD para verificar si tiene archivo firmado
+            int idAvance = (int) modeloAvances.getValueAt(fila, 0);
+            Avance avance = avanceDAO.obtenerPorId(idAvance);
+            
+            if (avance == null) {
+                JOptionPane.showMessageDialog(panel, "Error al obtener información del avance", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Priorizar archivo firmado si existe
+            String rutaArchivo;
+            String nombreDescarga;
+            
+            if (avance.getArchivoFirmado() != null && !avance.getArchivoFirmado().isEmpty()) {
+                rutaArchivo = avance.getArchivoFirmado();
+                nombreDescarga = new java.io.File(rutaArchivo).getName();
+            } else {
+                rutaArchivo = avance.getRutaArchivo();
+                nombreDescarga = avance.getNombreArchivo();
+            }
+            
+            java.io.File archivo = new java.io.File(rutaArchivo);
+            
+            if (archivo.exists()) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setSelectedFile(new java.io.File(nombreDescarga));
+                int resultado = fileChooser.showSaveDialog(panel);
+                
+                if (resultado == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        java.nio.file.Files.copy(archivo.toPath(), 
+                            fileChooser.getSelectedFile().toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        JOptionPane.showMessageDialog(panel, "Archivo descargado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(panel, "Error al descargar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } else {
+                JOptionPane.showMessageDialog(panel, "El archivo no existe", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        btnEliminar.addActionListener(e -> {
+            int fila = tablaAvances.getSelectedRow();
+            if (fila == -1) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un avance para eliminar", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            int respuesta = JOptionPane.showConfirmDialog(panel, "¿Está seguro de que desea eliminar este avance?", "Confirmar", JOptionPane.YES_NO_OPTION);
+            if (respuesta == JOptionPane.YES_OPTION) {
+                int idAvance = (int) modeloAvances.getValueAt(fila, 0);
+                String nombreArchivo = (String) modeloAvances.getValueAt(fila, 3);
+                java.io.File archivo = new java.io.File("avances/" + nombreArchivo);
+                
+                // Eliminar archivo
+                if (archivo.delete()) {
+                    // Eliminar de la BD
+                    if (avanceDAO.eliminar(idAvance)) {
+                        JOptionPane.showMessageDialog(panel, "Avance eliminado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        cargarAvances(modeloAvances);
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Error al eliminar de la BD", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(panel, "No se pudo eliminar el archivo", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        accionesPanel.add(btnDescargar);
+        accionesPanel.add(btnEliminar);
+        
+        // Ensamblar panel
+        panel.add(uploadPanel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(accionesPanel, BorderLayout.SOUTH);
+        
+        cargarAvances(modeloAvances);
+        
+        return panel;
+    }
+    
+    private void cargarAvances(DefaultTableModel modelo) {
+        modelo.setRowCount(0);
+        
+        // Obtener avances del director actual de la BD
+        List<Avance> avances = avanceDAO.obtenerPorDirector(usuarioActual.getId());
+        
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+        
+        for (Avance a : avances) {
+            // Obtener nombre del proyecto
+            String nombreProyecto = "";
+            Proyecto proyecto = proyectoDAO.obtenerPorId(a.getIdProyecto());
+            if (proyecto != null) {
+                nombreProyecto = proyecto.getNombre();
+            }
+            
+            // Mostrar archivo firmado si existe, sino el original
+            String archivoMostrar = a.getNombreArchivo();
+            if (a.getArchivoFirmado() != null && !a.getArchivoFirmado().isEmpty()) {
+                // Extraer solo el nombre del archivo firmado
+                java.io.File archivoFirmado = new java.io.File(a.getArchivoFirmado());
+                archivoMostrar = archivoFirmado.getName() + " (FIRMADO)";
+            }
+            
+            modelo.addRow(new Object[]{
+                a.getIdAvance(),
+                nombreProyecto,
+                a.getDescripcion(),
+                archivoMostrar,
+                sdf.format(a.getFechaCarga()),
+                a.getEstado()
+            });
+        }
+    }
+    
+    // ======================== PANEL AVANCES JEFATURA ========================
+    
+    private JPanel crearPanelAvancesJefatura() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Tabla de todos los avances
+        String[] columnas = {"ID", "Proyecto", "Director", "Descripción", "Archivo", "Fecha", "Estado", "Firmado"};
+        DefaultTableModel modelo = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
+        JTable tabla = new JTable(modelo);
+        JScrollPane scrollPane = new JScrollPane(tabla);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Todos los Avances"));
+        
+        // Ocultar columna ID
+        tabla.getColumnModel().getColumn(0).setMinWidth(0);
+        tabla.getColumnModel().getColumn(0).setMaxWidth(0);
+        tabla.getColumnModel().getColumn(0).setWidth(0);
+        
+        // Panel de acciones
+        JPanel accionesPanel = new JPanel(new GridBagLayout());
+        accionesPanel.setBorder(BorderFactory.createTitledBorder("Acciones"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        JButton btnDescargar = new JButton("⬇️ Descargar Avance");
+        JButton btnSubirFirmado = new JButton("📤 Subir Archivo Firmado");
+        JButton btnDescargarFirmado = new JButton("📥 Descargar Firmado");
+        JButton btnActualizar = new JButton("🔄 Actualizar");
+        JComboBox<String> cmbEstado = new JComboBox<>(new String[]{"Pendiente", "Revisado", "Aprobado"});
+        JButton btnCambiarEstado = new JButton("Cambiar Estado");
+        
+        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        accionesPanel.add(btnDescargar, gbc);
+        
+        gbc.gridy = 1;
+        accionesPanel.add(btnSubirFirmado, gbc);
+        
+        gbc.gridy = 2;
+        accionesPanel.add(btnDescargarFirmado, gbc);
+        
+        gbc.gridy = 3;
+        gbc.gridwidth = 1;
+        accionesPanel.add(new JLabel("Estado:"), gbc);
+        gbc.gridx = 1;
+        accionesPanel.add(cmbEstado, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        accionesPanel.add(btnCambiarEstado, gbc);
+        
+        gbc.gridy = 5;
+        accionesPanel.add(btnActualizar, gbc);
+        
+        // Evento descargar avance
+        btnDescargar.addActionListener(e -> {
+            int fila = tabla.getSelectedRow();
+            if (fila == -1) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un avance", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String nombreArchivo = (String) modelo.getValueAt(fila, 4);
+            java.io.File archivo = new java.io.File("avances/" + nombreArchivo);
+            
+            if (archivo.exists()) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setSelectedFile(new java.io.File(nombreArchivo));
+                int resultado = fileChooser.showSaveDialog(panel);
+                
+                if (resultado == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        java.nio.file.Files.copy(archivo.toPath(), 
+                            fileChooser.getSelectedFile().toPath(),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        JOptionPane.showMessageDialog(panel, "Archivo descargado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(panel, "Error al descargar: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } else {
+                JOptionPane.showMessageDialog(panel, "El archivo no existe", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        // Evento subir archivo firmado
+        btnSubirFirmado.addActionListener(e -> {
+            int fila = tabla.getSelectedRow();
+            if (fila == -1) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un avance", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            int resultado = fileChooser.showOpenDialog(panel);
+            
+            if (resultado == JFileChooser.APPROVE_OPTION) {
+                try {
+                    java.io.File archivoSeleccionado = fileChooser.getSelectedFile();
+                    int idAvance = (int) modelo.getValueAt(fila, 0);
+                    
+                    // Crear carpeta de firmados si no existe
+                    java.io.File carpetaFirmados = new java.io.File("avances/firmados");
+                    if (!carpetaFirmados.exists()) {
+                        carpetaFirmados.mkdirs();
+                    }
+                    
+                    // Generar nombre único
+                    String timestamp = new java.text.SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
+                    String nombreFirmado = "FIRMADO_" + timestamp + "_" + archivoSeleccionado.getName();
+                    String rutaFirmado = "avances/firmados/" + nombreFirmado;
+                    
+                    // Copiar archivo
+                    java.nio.file.Files.copy(archivoSeleccionado.toPath(), 
+                        new java.io.File(rutaFirmado).toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    
+                    // Guardar en BD
+                    if (avanceDAO.actualizarArchivoFirmado(idAvance, rutaFirmado)) {
+                        JOptionPane.showMessageDialog(panel, "Archivo firmado subido exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        cargarAvancesJefatura(modelo);
+                    } else {
+                        JOptionPane.showMessageDialog(panel, "Error al guardar en BD", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(panel, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        // Evento descargar archivo firmado
+        btnDescargarFirmado.addActionListener(e -> {
+            int fila = tabla.getSelectedRow();
+            if (fila == -1) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un avance", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String archivoFirmado = (String) modelo.getValueAt(fila, 7);
+            if (archivoFirmado == null || archivoFirmado.equals("No")) {
+                JOptionPane.showMessageDialog(panel, "Este avance no tiene archivo firmado", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            int idAvance = (int) modelo.getValueAt(fila, 0);
+            Avance avance = avanceDAO.obtenerPorId(idAvance);
+            
+            if (avance != null && avance.getArchivoFirmado() != null) {
+                java.io.File archivo = new java.io.File(avance.getArchivoFirmado());
+                
+                if (archivo.exists()) {
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setSelectedFile(new java.io.File(archivo.getName()));
+                    int resultado = fileChooser.showSaveDialog(panel);
+                    
+                    if (resultado == JFileChooser.APPROVE_OPTION) {
+                        try {
+                            java.nio.file.Files.copy(archivo.toPath(), 
+                                fileChooser.getSelectedFile().toPath(),
+                                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            JOptionPane.showMessageDialog(panel, "Archivo firmado descargado", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(panel, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(panel, "El archivo no existe", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        // Evento cambiar estado
+        btnCambiarEstado.addActionListener(e -> {
+            int fila = tabla.getSelectedRow();
+            if (fila == -1) {
+                JOptionPane.showMessageDialog(panel, "Seleccione un avance", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            int idAvance = (int) modelo.getValueAt(fila, 0);
+            String nuevoEstado = (String) cmbEstado.getSelectedItem();
+            
+            if (avanceDAO.actualizarEstado(idAvance, nuevoEstado)) {
+                JOptionPane.showMessageDialog(panel, "Estado actualizado", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                cargarAvancesJefatura(modelo);
+            } else {
+                JOptionPane.showMessageDialog(panel, "Error al actualizar estado", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        // Evento actualizar
+        btnActualizar.addActionListener(e -> cargarAvancesJefatura(modelo));
+        
+        // Listener para actualizar el combo de estado
+        tabla.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && tabla.getSelectedRow() != -1) {
+                String estadoActual = (String) modelo.getValueAt(tabla.getSelectedRow(), 6);
+                cmbEstado.setSelectedItem(estadoActual);
+            }
+        });
+        
+        panel.add(accionesPanel, BorderLayout.WEST);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        
+        cargarAvancesJefatura(modelo);
+        
+        return panel;
+    }
+    
+    private void cargarAvancesJefatura(DefaultTableModel modelo) {
+        modelo.setRowCount(0);
+        
+        List<Avance> avances = avanceDAO.obtenerTodos();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+        
+        for (Avance a : avances) {
+            // Obtener nombre del proyecto
+            String nombreProyecto = "";
+            Proyecto proyecto = proyectoDAO.obtenerPorId(a.getIdProyecto());
+            if (proyecto != null) {
+                nombreProyecto = proyecto.getNombre();
+            }
+            
+            // Obtener nombre del director
+            String nombreDirector = "";
+            Usuario director = usuarioDAO.obtenerPorId(a.getIdDirector());
+            if (director != null) {
+                nombreDirector = director.getNombre() + " " + director.getApellido();
+            }
+            
+            String tieneFirmado = (a.getArchivoFirmado() != null) ? "Sí" : "No";
+            
+            modelo.addRow(new Object[]{
+                a.getIdAvance(),
+                nombreProyecto,
+                nombreDirector,
+                a.getDescripcion(),
+                a.getNombreArchivo(),
+                sdf.format(a.getFechaCarga()),
+                a.getEstado(),
+                tieneFirmado
+            });
+        }
+    }
 }

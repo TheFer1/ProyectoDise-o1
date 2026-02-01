@@ -11,6 +11,7 @@ public class Formulario {
     private String facultad;
     private String estado; // Pendiente, Aprobado, Rechazado
     private int idProyecto; // ID del proyecto asociado
+    private String tipoPersonal; // Ayudante, Ayudante de Investigación, Técnico en Investigación, Asistente de Investigación
     
     // Constructores
     public Formulario() {
@@ -165,6 +166,14 @@ public class Formulario {
         return "Rechazado".equals(this.estado);
     }
     
+    public String getTipoPersonal() {
+        return tipoPersonal;
+    }
+    
+    public void setTipoPersonal(String tipoPersonal) {
+        this.tipoPersonal = tipoPersonal;
+    }
+    
     @Override
     public String toString() {
         return "Formulario{" +
@@ -176,6 +185,7 @@ public class Formulario {
                 ", facultad='" + facultad + '\'' +
                 ", estado='" + estado + '\'' +
                 ", idProyecto=" + idProyecto +
+                ", tipoPersonal='" + tipoPersonal + '\'' +
                 '}';
     }
 }
