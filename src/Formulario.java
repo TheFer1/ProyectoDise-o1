@@ -132,6 +132,31 @@ public class Formulario {
     }
     
     /**
+     * Valida si se puede registrar este formulario en el proyecto dado
+     * @param proyecto Proyecto al que se quiere agregar el ayudante
+     * @param ayudantesActuales Número de ayudantes ya registrados en el proyecto
+     * @return ResultadoOperacion con el resultado de la validación
+     */
+    public ResultadoOperacion validarContraProyecto(Proyecto proyecto, int ayudantesActuales) {
+        if (proyecto == null) {
+            return new ResultadoOperacion(false, "El proyecto no existe");
+        }
+        
+        if (this.idProyecto != proyecto.getId()) {
+            return new ResultadoOperacion(false, "El formulario no corresponde al proyecto especificado");
+        }
+        
+        if (!proyecto.puedeAceptarMasAyudantes(ayudantesActuales)) {
+            return new ResultadoOperacion(false, 
+                "No se puede registrar el ayudante. El proyecto ya alcanzó su límite de " + 
+                proyecto.getNumeroDeDayudantesDelProyecto() + " ayudante(s)");
+        }
+        
+        return new ResultadoOperacion(true, 
+            "Validación exitosa. Cupos disponibles: " + proyecto.cuposDisponibles(ayudantesActuales));
+    }
+    
+    /**
      * Cambia el estado a Aprobado
      */
     public void aprobar() {

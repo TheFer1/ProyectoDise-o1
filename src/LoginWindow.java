@@ -147,8 +147,8 @@ public class LoginWindow  extends JFrame{
                 // Abrir sistema con rol validado
                 SwingUtilities.invokeLater(() -> {
                     dispose();
-                    SistemaGestionWindow sistema = new SistemaGestionWindow(usuarioActual, rolActual);
-                    sistema.setVisible(true);
+                    InformacionSistemaWindow info = new InformacionSistemaWindow(usuarioActual, rolActual);
+                    info.setVisible(true);
                 });
             } else {
                 lblEstado.setText("✗ Correo o contraseña inválidos");
@@ -167,8 +167,8 @@ public class LoginWindow  extends JFrame{
                 rolActual = "Director";
                 
                 dispose();
-                SistemaGestionWindow sistema = new SistemaGestionWindow(usuarioActual, rolActual);
-                sistema.setVisible(true);
+                InformacionSistemaWindow info = new InformacionSistemaWindow(usuarioActual, rolActual);
+                info.setVisible(true);
             } else {
                 JOptionPane.showMessageDialog(this,
                     "No hay usuarios en la base de datos.\n" +

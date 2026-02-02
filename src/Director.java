@@ -40,12 +40,71 @@ public class Director extends Usuario {
     
     /**
      * Registra un nuevo formulario (ayudante) para un proyecto
+     * Valida que no se exceda el número de ayudantes permitidos
      */
     public boolean registrarFormulario(Formulario formulario) {
         if (formulario == null) {
             return false;
         }
-        return formularioDAO.insertar(formulario);
+        
+        // Validar que el formulario tenga un proyecto asignado
+        if (formulario.getIdProyecto() <= 0) {
+            System.err.println("❌ Error: El formulario debe tener un proyecto asignado");
+            return false;
+        }
+        
+        // Obtener el proyecto
+        Proyecto proyecto = proyectoDAO.obtenerPorId(formulario.getIdProyecto());
+        if (proyecto == null) {
+            System.err.println("❌ Error: El proyecto no existe");
+            return false;
+        }
+        
+        // Contar cuántos ayudantes ya están registrados
+        int ayudantesActuales = formularioDAO.contarAyudantesPorProyecto(formulario.getIdProyecto());
+        int ayudantesPermitidos = proyecto.getNumeroDeDayudantesDelProyecto();
+        
+        // Validar que no se exceda el límite
+        if (ayudantesActuales >= ayudantesPermitidos) {
+            System.err.println("❌ Error: No se puede registrar el ayudante. El proyecto ya alcanzó el límite de " + 
+                             ayudantesPermitidos + " ayudante(s).");
+            System.err.println("   Ayudantes registrados actualmente: " + ayudantesActuales);
+            return false;
+        }
+        
+        // Insertar el formulario
+        boolean resultado = formularioDAO.insertar(formulario);
+        
+        if (resultado) {
+            int ayudantesRestantes = ayudantesPermitidos - ayudantesActuales - 1;
+            System.out.println("✓ Formulario registrado exitosamente");
+            System.out.println("   Ayudantes registrados: " + (ayudantesActuales + 1) + "/" + ayudantesPermitidos);
+            if (ayudantesRestantes > 0) {
+                System.out.println("   Puede registrar " + ayudantesRestantes + " ayudante(s) más");
+            } else {
+                System.out.println("   ⚠ Límite de ayudantes alcanzado para este proyecto");
+            }
+        }
+        
+        return resultado;
+    }
+    
+    /**
+     * Verifica cuántos ayudantes se pueden registrar aún en un proyecto
+     * @param idProyecto ID del proyecto a verificar
+     * @return Número de ayudantes que se pueden registrar aún
+     */
+    public int verificarCuposDisponibles(int idProyecto) {
+        Proyecto proyecto = proyectoDAO.obtenerPorId(idProyecto);
+        if (proyecto == null) {
+            return 0;
+        }
+        
+        int ayudantesActuales = formularioDAO.contarAyudantesPorProyecto(idProyecto);
+        int ayudantesPermitidos = proyecto.getNumeroDeDayudantesDelProyecto();
+        int cuposDisponibles = ayudantesPermitidos - ayudantesActuales;
+        
+        return Math.max(0, cuposDisponibles);
     }
     
     /**

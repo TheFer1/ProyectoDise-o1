@@ -204,4 +204,32 @@ public class UsuarioDAO {
         
         return usuarios;
     }
+    
+    /**
+     * Obtener todos los directores
+     */
+    public List<Usuario> obtenerDirectores() {
+        List<Usuario> directores = new ArrayList<>();
+        String sql = "SELECT * FROM usuarios WHERE tipo = 'Director' ORDER BY nombre";
+        
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                Director director = new Director(
+                    rs.getInt("id"),
+                    rs.getString("nombre"),
+                    rs.getString("apellido"),
+                    rs.getString("correo"),
+                    rs.getString("contraseña")
+                );
+                director.setTipo("Director");
+                directores.add(director);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener directores: " + e.getMessage());
+        }
+        
+        return directores;
+    }
 }

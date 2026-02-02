@@ -100,6 +100,7 @@ public class DatabaseConnection {
                     " cedula TEXT NOT NULL," +
                     " facultad TEXT," +
                     " estado TEXT DEFAULT 'Pendiente'," +
+                    " tipoPersonal VARCHAR(100) DEFAULT 'Ayudante'," +
                     " id_proyecto INTEGER DEFAULT 0," +
                     " FOREIGN KEY (id_proyecto) REFERENCES proyectos(id)" +
                     ");");
@@ -135,6 +136,20 @@ public class DatabaseConnection {
                     " maximo_ayudantes INTEGER NOT NULL," +
                     " ayudantes_registrados INTEGER DEFAULT 0" +
                     ");");
+            stmt.execute("CREATE TABLE IF NOT EXISTS avances (" +
+                    " idAvance INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    " idProyecto INTEGER NOT NULL," +
+                    " idDirector INTEGER NOT NULL," +
+                    " descripcion VARCHAR(500) NOT NULL," +
+                    " nombreArchivo VARCHAR(255) NOT NULL," +
+                    " rutaArchivo VARCHAR(255) NOT NULL," +
+                    " fechaCarga DATETIME DEFAULT CURRENT_TIMESTAMP," +
+                    " estado VARCHAR(50) DEFAULT 'Pendiente'," +
+                    " archivoFirmado VARCHAR(255)," +
+                    " FOREIGN KEY (idProyecto) REFERENCES proyectos(id)," +
+                    " FOREIGN KEY (idDirector) REFERENCES usuarios(id)" +
+                    ");");
+
             
             System.out.println("Todas las tablas han sido inicializadas.");
             

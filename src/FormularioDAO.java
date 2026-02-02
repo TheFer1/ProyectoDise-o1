@@ -233,4 +233,26 @@ public class FormularioDAO {
         
         return formularios;
     }
+    
+    /**
+     * Cuenta el número de ayudantes registrados en un proyecto
+     * @param idProyecto ID del proyecto
+     * @return Cantidad de ayudantes (formularios) registrados para ese proyecto
+     */
+    public int contarAyudantesPorProyecto(int idProyecto) {
+        String sql = "SELECT COUNT(*) as total FROM formularios WHERE id_proyecto = ?";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, idProyecto);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al contar ayudantes: " + e.getMessage());
+        }
+        
+        return 0;
+    }
 }

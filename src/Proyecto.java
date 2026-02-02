@@ -134,6 +134,24 @@ public class Proyecto {
     public int getIdDirector() {
         return this.idUsuario;
     }
+    
+    /**
+     * Verifica si el proyecto puede aceptar más ayudantes
+     * @param ayudantesActuales Número de ayudantes ya registrados
+     * @return true si se pueden agregar más ayudantes
+     */
+    public boolean puedeAceptarMasAyudantes(int ayudantesActuales) {
+        return ayudantesActuales < numeroDeAyudantesDelProyecto;
+    }
+    
+    /**
+     * Calcula cuántos ayudantes más se pueden registrar
+     * @param ayudantesActuales Número de ayudantes ya registrados
+     * @return Cantidad de cupos disponibles
+     */
+    public int cuposDisponibles(int ayudantesActuales) {
+        return Math.max(0, numeroDeAyudantesDelProyecto - ayudantesActuales);
+    }
 
     @Override
     public String toString() {
