@@ -9,7 +9,6 @@ public class Jefatura extends Usuario {
     // DAOs
     private ProyectoDAO proyectoDAO;
     private FormularioDAO formularioDAO;
-    private SolicitudDAO solicitudDAO;
     private UsuarioDAO usuarioDAO;
     
     // Constructor
@@ -34,7 +33,6 @@ public class Jefatura extends Usuario {
     private void inicializarDAOs() {
         this.proyectoDAO = new ProyectoDAO();
         this.formularioDAO = new FormularioDAO();
-        this.solicitudDAO = new SolicitudDAO();
         this.usuarioDAO = new UsuarioDAO();
     }
     
@@ -60,20 +58,6 @@ public class Jefatura extends Usuario {
     }
     
     /**
-     * Obtiene todas las solicitudes
-     */
-    public List<Solicitud> consultarSolicitudes() {
-        return solicitudDAO.obtenerTodas();
-    }
-    
-    /**
-     * Obtiene solicitudes por estado
-     */
-    public List<Solicitud> consultarSolicitudesPorEstado(String estado) {
-        return solicitudDAO.buscarPorEstado(estado);
-    }
-    
-    /**
      * Aprueba un formulario
      */
     public boolean aprobarFormulario(int idFormulario) {
@@ -95,43 +79,6 @@ public class Jefatura extends Usuario {
         }
         f.setEstado("Rechazado");
         return formularioDAO.actualizar(f);
-    }
-    
-    /**
-     * Asesora sobre una solicitud
-     */
-    public boolean asesorarSolicitud(int idSolicitud, String asesoramiento) {
-        Solicitud s = solicitudDAO.obtenerPorId(idSolicitud);
-        if (s == null) {
-            return false;
-        }
-        s.setEstadoEmisionDest("Asesorada");
-        // Nota: Agregar campo de asesoramiento en Solicitud si no existe
-        return solicitudDAO.actualizar(s);
-    }
-    
-    /**
-     * Aprueba una solicitud
-     */
-    public boolean aprobarSolicitud(int idSolicitud) {
-        Solicitud s = solicitudDAO.obtenerPorId(idSolicitud);
-        if (s == null) {
-            return false;
-        }
-        s.setEstadoEmisionDest("Aprobada");
-        return solicitudDAO.actualizar(s);
-    }
-    
-    /**
-     * Rechaza una solicitud
-     */
-    public boolean rechazarSolicitud(int idSolicitud) {
-        Solicitud s = solicitudDAO.obtenerPorId(idSolicitud);
-        if (s == null) {
-            return false;
-        }
-        s.setEstadoEmisionDest("Rechazada");
-        return solicitudDAO.actualizar(s);
     }
     
     /**

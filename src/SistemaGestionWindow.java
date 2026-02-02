@@ -21,7 +21,6 @@ public class SistemaGestionWindow extends JFrame {
     private UsuarioDAO usuarioDAO;
     private ProyectoDAO proyectoDAO;
     private FormularioDAO formularioDAO;
-    private SolicitudDAO solicitudDAO;
     private NotificacionDAO notificacionDAO;
     private AvanceDAO avanceDAO;
     
@@ -42,7 +41,6 @@ public class SistemaGestionWindow extends JFrame {
         usuarioDAO = new UsuarioDAO();
         proyectoDAO = new ProyectoDAO();
         formularioDAO = new FormularioDAO();
-        solicitudDAO = new SolicitudDAO();
         notificacionDAO = new NotificacionDAO();
         avanceDAO = new AvanceDAO();
     }
@@ -625,7 +623,6 @@ public class SistemaGestionWindow extends JFrame {
             
             Director director = new Director(usuarioActual.getId(), usuarioActual.getNombre(),
                 usuarioActual.getApellido(), usuarioActual.getCorreo(), usuarioActual.getContraseña());
-            ControladorSolicitudes controlador = new ControladorSolicitudes(director);
             
             JComboBox<String> cbProyectoAyudantes = new JComboBox<>();
             JComboBox<String> cmbTipoPersonal = new JComboBox<>(new String[]{
@@ -640,7 +637,7 @@ public class SistemaGestionWindow extends JFrame {
             JSpinner spnNumAyudantes = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
             
             // Cargar proyectos del director
-            List<Proyecto> proyectosDirector = controlador.obtenerProyectos();
+            List<Proyecto> proyectosDirector = proyectoDAO.obtenerPorDirector(usuarioActual.getId());
             for (Proyecto p : proyectosDirector) {
                 cbProyectoAyudantes.addItem(p.getId() + " - " + p.getNombre());
             }
@@ -719,6 +716,68 @@ public class SistemaGestionWindow extends JFrame {
                 
                 // Guardar en BD
                 if (formularioDAO.insertar(formulario)) {
+                    // Obtener información del proyecto para la notificación
+                    Proyecto proyecto = proyectoDAO.obtenerPorId(idProyecto);
+                    String nombreProyecto = proyecto != null ? proyecto.getNombre() : "Proyecto ID: " + idProyecto;
+                    
+                    // Crear notificación dependiendo del tipo de personal
+                    String mensajeNotificacion;
+                    String asuntoEmail;
+                    
+                    if ("Ayudante de Investigación".equals(tipoPersonal) || 
+                        tipoPersonal.toLowerCase().contains("ayudante")) {
+                        // Para ayudantes: contar cuántos hay registrados vs. requeridos
+                        int ayudantesRequeridos = proyecto != null ? proyecto.getNumeroDeDayudantesDelProyecto() : 0;
+                        List<Formulario> formulariosProyecto = formularioDAO.buscarPorProyecto(idProyecto);
+                        int ayudantesRegistrados = formulariosProyecto != null ? formulariosProyecto.size() : 0;
+                        
+                        mensajeNotificacion = String.format(
+                            "✓ Nuevo ayudante registrado: %s %s\n" +
+                            "Proyecto: %s\n" +
+                            "Ayudantes registrados: %d de %d requeridos",
+                            nombre, apellido,
+                            nombreProyecto,
+                            ayudantesRegistrados,
+                            ayudantesRequeridos
+                        );
+                        
+                        asuntoEmail = "Nuevo Ayudante Registrado - " + nombreProyecto;
+                        
+                        Notificacion notificacion = new Notificacion(mensajeNotificacion, usuarioActual.getId());
+                        notificacionDAO.insertar(notificacion);
+                    } else {
+                        // Para otros tipos de personal: notificación simple
+                        mensajeNotificacion = String.format(
+                            "✓ Nuevo personal registrado: %s %s\n" +
+                            "Tipo: %s\n" +
+                            "Proyecto: %s",
+                            nombre, apellido,
+                            tipoPersonal,
+                            nombreProyecto
+                        );
+                        
+                        asuntoEmail = "Nuevo Personal Registrado - " + tipoPersonal;
+                        
+                        Notificacion notificacion = new Notificacion(mensajeNotificacion, usuarioActual.getId());
+                        notificacionDAO.insertar(notificacion);
+                    }
+                    
+                    // Enviar correo electrónico al director
+                    try {
+                        boolean correoEnviado = Notificacion.enviarNotificacionAUsuario(
+                            usuarioActual, 
+                            asuntoEmail, 
+                            mensajeNotificacion
+                        );
+                        
+                        if (correoEnviado) {
+                            System.out.println("Correo de notificación enviado a: " + usuarioActual.getCorreo());
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("Error al enviar correo: " + ex.getMessage());
+                        // No detenemos el flujo si falla el email
+                    }
+                    
                     JOptionPane.showMessageDialog(panel, "✓ Personal registrado exitosamente", "Éxito", JOptionPane.INFORMATION_MESSAGE);
                     
                     // Limpiar campos
@@ -913,154 +972,6 @@ public class SistemaGestionWindow extends JFrame {
         column.setResizable(false);
     }
     
-    // ======================== PANEL SOLICITUDES ========================
-
-    /**
-     * Panel de Solicitudes para Jefatura: cambio de estado y notificación
-     */
-    private JPanel crearPanelSolicitudesJefatura() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        String[] columnas = {"ID", "Fecha", "Asunto", "Tipo", "Detalle", "Estado", "Solicitante", "IdUsuario"};
-        DefaultTableModel modelo = new DefaultTableModel(columnas, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
-        JTable tabla = new JTable(modelo);
-        JScrollPane scrollPane = new JScrollPane(tabla);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Solicitudes"));
-
-        ocultarColumna(tabla, 7); // IdUsuario oculto
-
-        JPanel accionesPanel = new JPanel(new GridBagLayout());
-        accionesPanel.setBorder(BorderFactory.createTitledBorder("Acciones"));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        JComboBox<String> cbEstado = new JComboBox<>(new String[]{"Pendiente", "Aprobado", "Rechazado"});
-        JButton btnActualizarEstado = new JButton("Actualizar Estado");
-
-        gbc.gridx = 0; gbc.gridy = 0;
-        accionesPanel.add(new JLabel("Estado:"), gbc);
-        gbc.gridx = 1; gbc.gridy = 0;
-        accionesPanel.add(cbEstado, gbc);
-        gbc.gridx = 2; gbc.gridy = 0;
-        accionesPanel.add(btnActualizarEstado, gbc);
-
-        JLabel lblMensaje = new JLabel("Notificación personalizada:");
-        JTextArea txtMensaje = new JTextArea(3, 25);
-        txtMensaje.setLineWrap(true);
-        txtMensaje.setWrapStyleWord(true);
-        JScrollPane scrollMensaje = new JScrollPane(txtMensaje);
-        JButton btnEnviarNotificacion = new JButton("Enviar Notificación");
-        JButton btnActualizarSolicitudes = new JButton("🔄 Actualizar");
-
-        gbc.gridx = 0; gbc.gridy = 1;
-        gbc.gridwidth = 3;
-        accionesPanel.add(lblMensaje, gbc);
-        gbc.gridy = 2;
-        accionesPanel.add(scrollMensaje, gbc);
-        gbc.gridy = 3;
-        accionesPanel.add(btnEnviarNotificacion, gbc);
-        gbc.gridy = 4;
-        accionesPanel.add(btnActualizarSolicitudes, gbc);
-
-        btnActualizarEstado.addActionListener(e -> {
-            int fila = tabla.getSelectedRow();
-            if (fila == -1) {
-                JOptionPane.showMessageDialog(panel, "Seleccione una solicitud", "Advertencia", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            int id = (int) modelo.getValueAt(fila, 0);
-            String nuevoEstado = (String) cbEstado.getSelectedItem();
-
-            if (solicitudDAO.actualizarEstado(id, nuevoEstado)) {
-                JOptionPane.showMessageDialog(panel, "Estado actualizado", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                cargarSolicitudesJefatura(modelo);
-            } else {
-                JOptionPane.showMessageDialog(panel, "No se pudo actualizar el estado", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        btnEnviarNotificacion.addActionListener(e -> {
-            int fila = tabla.getSelectedRow();
-            if (fila == -1) {
-                JOptionPane.showMessageDialog(panel, "Seleccione una solicitud", "Advertencia", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            String mensaje = txtMensaje.getText().trim();
-            if (mensaje.isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "Escriba el mensaje de la notificación", "Advertencia", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            int idUsuario = (int) modelo.getValueAt(fila, 7);
-            Notificacion notificacion = new Notificacion(mensaje, idUsuario);
-            if (notificacionDAO.insertar(notificacion)) {
-                JOptionPane.showMessageDialog(panel, "Notificación enviada", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                txtMensaje.setText("");
-            } else {
-                JOptionPane.showMessageDialog(panel, "No se pudo enviar la notificación", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        tabla.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && tabla.getSelectedRow() != -1) {
-                String estadoActual = (String) modelo.getValueAt(tabla.getSelectedRow(), 5);
-                cbEstado.setSelectedItem(estadoActual);
-            }
-        });
-        
-        btnActualizarSolicitudes.addActionListener(e -> cargarSolicitudesJefatura(modelo));
-
-        panel.add(accionesPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        cargarSolicitudesJefatura(modelo);
-        return panel;
-    }
-
-    private void cargarSolicitudesJefatura(DefaultTableModel modelo) {
-        modelo.setRowCount(0);
-        List<Solicitud> solicitudes = solicitudDAO.obtenerTodos();
-
-        for (Solicitud s : solicitudes) {
-            String detalle = "";
-            if ("Permiso".equals(s.getTipo()) && s.getCodigoPermiso() != null) {
-                detalle = s.getCodigoPermiso();
-            } else if ("Documento".equals(s.getTipo()) && s.getTipoDocumento() != null) {
-                detalle = s.getTipoDocumento();
-            }
-
-            String solicitante = "";
-            if (s.getIdUsuario() > 0) {
-                Usuario u = usuarioDAO.obtenerPorId(s.getIdUsuario());
-                if (u != null) {
-                    solicitante = u.getNombre() + " " + u.getApellido();
-                }
-            }
-
-            modelo.addRow(new Object[]{
-                s.getIdSolicitud(),
-                s.getFecha(),
-                s.getAsunto(),
-                s.getTipo(),
-                detalle,
-                s.getEstadoEmisionDest(),
-                solicitante,
-                s.getIdUsuario()
-            });
-        }
-    }
-    
-
     // ======================== PANEL NOTIFICACIONES ========================
     
     private JPanel crearPanelNotificaciones() {
@@ -1159,199 +1070,6 @@ public class SistemaGestionWindow extends JFrame {
         }
     }
     
-    // ======================== PANEL ENVIAR SOLICITUD (DIRECTOR) ========================
-    
-    /**
-     * Panel para que el Director envíe solicitudes
-     * Usa el patrón Controlador para separar lógica de UI
-     */
-    private JPanel crearPanelEnviarSolicitudDirector() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Crear controlador (separación de responsabilidades)
-        Director director = new Director(usuarioActual.getId(), usuarioActual.getNombre(),
-            usuarioActual.getApellido(), usuarioActual.getCorreo(), usuarioActual.getContraseña());
-        ControladorSolicitudes controlador = new ControladorSolicitudes(director);
-        
-        // Panel de instrucciones
-        JPanel instruccionesPanel = new JPanel(new BorderLayout());
-        instruccionesPanel.setBorder(BorderFactory.createTitledBorder("📋 Instrucciones"));
-        JLabel lblInstrucciones = new JLabel(
-            "<html><b>Complete el formulario para enviar una solicitud a Jefatura.</b><br>" +
-            "Especifique el tipo de solicitud, asunto y detalles.</html>"
-        );
-        lblInstrucciones.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        instruccionesPanel.add(lblInstrucciones, BorderLayout.CENTER);
-        
-        // ===== SECCIÓN 2: ENVIAR SOLICITUD =====
-        JPanel solicitudPanel = new JPanel(new BorderLayout(5, 5));
-        solicitudPanel.setBorder(BorderFactory.createTitledBorder("Enviar Solicitud a Jefatura"));
-        
-        JPanel formSolicitudPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc2 = new GridBagConstraints();
-        gbc2.insets = new Insets(5, 5, 5, 5);
-        gbc2.fill = GridBagConstraints.HORIZONTAL;
-        
-        JComboBox<String> cbTipoSolicitud = new JComboBox<>(new String[]{"Formulario de Ayudantes", "Permiso", "Documento"});
-        JTextField txtAsunto = new JTextField(20);
-        JTextField txtDetalle = new JTextField(20);
-        JTextArea txtDescripcion = new JTextArea(3, 20);
-        txtDescripcion.setLineWrap(true);
-        txtDescripcion.setWrapStyleWord(true);
-        JScrollPane scrollDescripcion = new JScrollPane(txtDescripcion);
-        
-        gbc2.gridx = 0; gbc2.gridy = 0;
-        formSolicitudPanel.add(new JLabel("Tipo de Solicitud:"), gbc2);
-        gbc2.gridx = 1;
-        formSolicitudPanel.add(cbTipoSolicitud, gbc2);
-        
-        gbc2.gridx = 0; gbc2.gridy = 1;
-        formSolicitudPanel.add(new JLabel("Asunto:"), gbc2);
-        gbc2.gridx = 1;
-        formSolicitudPanel.add(txtAsunto, gbc2);
-        
-        gbc2.gridx = 0; gbc2.gridy = 2;
-        formSolicitudPanel.add(new JLabel("Detalle (Código/Tipo):"), gbc2);
-        gbc2.gridx = 1;
-        formSolicitudPanel.add(txtDetalle, gbc2);
-        
-        gbc2.gridx = 0; gbc2.gridy = 3;
-        gbc2.anchor = GridBagConstraints.NORTH;
-        formSolicitudPanel.add(new JLabel("Descripción:"), gbc2);
-        gbc2.gridx = 1;
-        gbc2.fill = GridBagConstraints.BOTH;
-        gbc2.weighty = 1.0;
-        formSolicitudPanel.add(scrollDescripcion, gbc2);
-        
-        // Botón Enviar Solicitud
-        JButton btnEnviar = new JButton("📨 Enviar Solicitud");
-        btnEnviar.setFont(new Font("Arial", Font.BOLD, 12));
-        gbc2.gridx = 0; gbc2.gridy = 4;
-        gbc2.gridwidth = 2;
-        gbc2.fill = GridBagConstraints.HORIZONTAL;
-        gbc2.weighty = 0;
-        formSolicitudPanel.add(btnEnviar, gbc2);
-        
-        solicitudPanel.add(formSolicitudPanel, BorderLayout.CENTER);
-        
-        // ===== TABLA DE SOLICITUDES =====
-        // Panel contenedor para la tabla
-        JPanel tablaPanel = new JPanel(new BorderLayout());
-        tablaPanel.setPreferredSize(new Dimension(0, 200)); // Altura fija de 200px
-        
-        // Tabla de solicitudes
-        String[] columnasSol = {"ID", "Fecha", "Asunto", "Estado"};
-        DefaultTableModel modeloSol = new DefaultTableModel(columnasSol, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        JTable tablaSolicitudes = new JTable(modeloSol);
-        tablaSolicitudes.setRowHeight(25);
-        tablaSolicitudes.getTableHeader().setReorderingAllowed(false);
-        
-        JScrollPane scrollSol = new JScrollPane(tablaSolicitudes);
-        scrollSol.setBorder(BorderFactory.createTitledBorder("📋 Solicitudes Enviadas"));
-        tablaPanel.add(scrollSol, BorderLayout.CENTER);
-        
-        // Método para cargar solicitudes usando controlador
-        Runnable cargarSolicitudes = () -> {
-            modeloSol.setRowCount(0);
-            List<Solicitud> solicitudes = controlador.obtenerSolicitudes();
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-            for (Solicitud s : solicitudes) {
-                modeloSol.addRow(new Object[]{
-                    s.getIdSolicitud(),
-                    s.getFecha() != null ? sdf.format(s.getFecha()) : "",
-                    s.getAsunto(),
-                    s.getEstadoEmisionDest()
-                });
-            }
-        };
-        
-        // Eventos - Solo envío de solicitud
-        btnEnviar.addActionListener(e -> {
-            String tipoSolicitud = (String) cbTipoSolicitud.getSelectedItem();
-            String asunto = txtAsunto.getText().trim();
-            String detalle = txtDetalle.getText().trim();
-            String descripcion = txtDescripcion.getText().trim();
-
-            if (asunto.isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "Ingrese el asunto de la solicitud", "Error", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            if ("Formulario de Ayudantes".equals(tipoSolicitud)) {
-                // Usar controlador para enviar solicitud
-                ResultadoOperacion resultadoEnvio = controlador.enviarSolicitud(asunto, descripcion);
-                
-                int tipoMensaje = resultadoEnvio.isExitoso() ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE;
-                JOptionPane.showMessageDialog(panel, resultadoEnvio.getMensaje(), 
-                    resultadoEnvio.isExitoso() ? "Éxito" : "Advertencia", tipoMensaje);
-                
-                if (resultadoEnvio.isExitoso()) {
-                    txtAsunto.setText("");
-                    txtDetalle.setText("");
-                    txtDescripcion.setText("");
-                    cargarSolicitudes.run();
-                }
-            } else if ("Permiso".equals(tipoSolicitud)) {
-                if (detalle.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "No se envió la solicitud de permiso por faltar el código.", "Aviso", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                SolicitarPermiso solicitudPermiso = new SolicitarPermiso(asunto, usuarioActual.getId(), detalle);
-
-                if (solicitudPermiso.puedeSerProcesado() && solicitudDAO.insertar(solicitudPermiso)) {
-                    JOptionPane.showMessageDialog(panel,
-                        "✓ Solicitud de permiso enviada",
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
-                    txtAsunto.setText("");
-                    txtDetalle.setText("");
-                    txtDescripcion.setText("");
-                    cargarSolicitudes.run();
-                } else {
-                    JOptionPane.showMessageDialog(panel, "No se pudo enviar la solicitud de permiso", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            } else if ("Documento".equals(tipoSolicitud)) {
-                if (detalle.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "No se envió la solicitud de documento por faltar el tipo de documento.", "Aviso", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                SolicitarDocumento solicitudDocumento = new SolicitarDocumento(asunto, usuarioActual.getId(), detalle);
-
-                if (solicitudDocumento.puedeSerProcesado() && solicitudDAO.insertar(solicitudDocumento)) {
-                    JOptionPane.showMessageDialog(panel,
-                        "✓ Solicitud de documento enviada",
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
-                    txtAsunto.setText("");
-                    txtDetalle.setText("");
-                    txtDescripcion.setText("");
-                    cargarSolicitudes.run();
-                } else {
-                    JOptionPane.showMessageDialog(panel, "No se pudo enviar la solicitud de documento", "Error", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        
-        // Cargar datos iniciales
-        cargarSolicitudes.run();
-        
-        // Ensamblar panel final
-        panel.add(instruccionesPanel, BorderLayout.NORTH);
-        panel.add(solicitudPanel, BorderLayout.CENTER);
-        panel.add(tablaPanel, BorderLayout.SOUTH);
-        
-        return panel;
-    }
-    
     // ======================== PANEL GUARDAR AVANCE ========================
     
     private JPanel crearPanelGuardarAvance() {
@@ -1373,10 +1091,7 @@ public class SistemaGestionWindow extends JFrame {
         JButton btnLimpiar = new JButton("🔄 Limpiar");
         
         // Cargar proyectos del director
-        Director director = new Director(usuarioActual.getId(), usuarioActual.getNombre(),
-            usuarioActual.getApellido(), usuarioActual.getCorreo(), usuarioActual.getContraseña());
-        ControladorSolicitudes controlador = new ControladorSolicitudes(director);
-        List<Proyecto> proyectosDirector = controlador.obtenerProyectos();
+        List<Proyecto> proyectosDirector = proyectoDAO.obtenerPorDirector(usuarioActual.getId());
         
         for (Proyecto p : proyectosDirector) {
             cbProyectoAvance.addItem(p.getId() + " - " + p.getNombre());

@@ -10,7 +10,6 @@ public class Director extends Usuario {
     
     // DAOs
     private FormularioDAO formularioDAO;
-    private SolicitudDAO solicitudDAO;
     private ProyectoDAO proyectoDAO;
     private NotificacionDAO notificacionDAO;
     
@@ -35,7 +34,6 @@ public class Director extends Usuario {
      */
     private void inicializarDAOs() {
         this.formularioDAO = new FormularioDAO();
-        this.solicitudDAO = new SolicitudDAO();
         this.proyectoDAO = new ProyectoDAO();
         this.notificacionDAO = new NotificacionDAO();
     }
@@ -71,54 +69,7 @@ public class Director extends Usuario {
         return proyectoDAO.obtenerPorDirector(this.id);
     }
     
-    /**
-     * Envía una solicitud
-     * Verifica que exista al menos un formulario antes de enviar
-     * Si no hay formularios, crea una notificación recordando llenar el formulario
-     */
-    public boolean enviarSolicitud(Solicitud solicitud) {
-        if (solicitud == null) {
-            return false;
-        }
-        
-        // Verificar si el director tiene formularios en SUS proyectos
-        boolean tieneFormularios = false;
-        List<Proyecto> misProyectos = proyectoDAO.obtenerPorDirector(this.id);
-        
-        if (misProyectos != null && !misProyectos.isEmpty()) {
-            for (Proyecto proyecto : misProyectos) {
-                List<Formulario> formulariosProyecto = formularioDAO.buscarPorProyecto(proyecto.getId());
-                if (formulariosProyecto != null && !formulariosProyecto.isEmpty()) {
-                    tieneFormularios = true;
-                    break;
-                }
-            }
-        }
-        
-        if (!tieneFormularios) {
-            // No tiene formularios en sus proyectos, crear notificación
-            Notificacion notificacion = new Notificacion(
-                "ATENCIÓN: Debe llenar un formulario de ayudantes en uno de sus proyectos antes de enviar una solicitud a Jefatura. Por favor, complete el formulario requerido.",
-                this.id
-            );
-            notificacionDAO.insertar(notificacion);
-            System.out.println("No se puede enviar la solicitud. Debe llenar un formulario en sus proyectos primero.");
-            return false;
-        }
-        
-        // Si tiene formularios en sus proyectos, proceder con el envío
-        solicitud.setIdUsuario(this.id);
-        solicitud.setFecha(new Date());
-        solicitud.setEstadoEmisionDest("Pendiente");
-        return solicitudDAO.insertar(solicitud);
-    }
-    
-    /**
-     * Obtiene las solicitudes enviadas por este director
-     */
-    public List<Solicitud> consultarMisSolicitudes() {
-        return solicitudDAO.obtenerPorUsuario(this.id);
-    }
+
     
     /**
      * Obtiene las notificaciones del director
