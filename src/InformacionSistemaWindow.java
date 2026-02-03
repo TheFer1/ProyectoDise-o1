@@ -203,9 +203,9 @@ public class InformacionSistemaWindow extends JFrame {
         String[][] pasos = {
             {"1", "Inicie sesión con sus credenciales de director"},
             {"2", "Haga clic en la pestaña \"Mis Proyectos\""},
-            {"3", "Seleccione el proyecto en el que desea registrar ayudantes"},
-            {"4", "Haga clic en el botón \"Registrar Nuevo Ayudante\""},
-            {"5", "Complete el formulario con los datos del ayudante"},
+            {"3", "Seleccione el proyecto en el que desea registrar Participantes"},
+            {"4", "Haga clic en el botón \"Registrar Nuevo Participante\""},
+            {"5", "Complete el formulario con los datos del participante"},
             {"6", "Haga clic en \"Guardar y Registrar\""},
             {"7", "El sistema le mostrará un mensaje de confirmación"}
         };

@@ -255,4 +255,81 @@ public class FormularioDAO {
         
         return 0;
     }
+    
+    /**
+     * Obtiene un resumen de ayudantes por proyecto CON DESGLOSE POR TIPO DE PERSONAL
+     * @return Lista con información detallada de cada proyecto
+     */
+    public List<Object[]> obtenerResumenAyudantesPorProyecto() {
+        List<Object[]> resumen = new ArrayList<>();
+        String sql = "SELECT p.id, p.nombre, p.codigo, p.num_ayudantes as requeridos, " +
+                     "COUNT(f.id) as registrados, " +
+                     "(p.num_ayudantes - COUNT(f.id)) as faltantes, " +
+                     "u.nombre as director_nombre, u.apellido as director_apellido " +
+                     "FROM proyectos p " +
+                     "LEFT JOIN formularios f ON p.id = f.id_proyecto " +
+                     "LEFT JOIN usuarios u ON p.id_usuario = u.id " +
+                     "GROUP BY p.id, p.nombre, p.codigo, p.num_ayudantes, u.nombre, u.apellido " +
+                     "ORDER BY p.nombre";
+        
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                Object[] fila = new Object[8];
+                fila[0] = rs.getInt("id");
+                fila[1] = rs.getString("nombre");
+                fila[2] = rs.getString("codigo");
+                fila[3] = rs.getInt("requeridos");
+                fila[4] = rs.getInt("registrados");
+                fila[5] = rs.getInt("faltantes");
+                fila[6] = rs.getString("director_nombre") + " " + rs.getString("director_apellido");
+                fila[7] = rs.getInt("registrados") >= rs.getInt("requeridos") ? "✓ Completo" : "⚠ Incompleto";
+                
+                resumen.add(fila);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener resumen de ayudantes: " + e.getMessage());
+        }
+        
+        return resumen;
+    }
+    
+    /**
+     * Obtiene el desglose de ayudantes por tipo de personal en un proyecto
+     * @param idProyecto ID del proyecto
+     * @return Array con [ayudantesInvestigacion, tecnicos, asistentes]
+     */
+    public int[] obtenerDesglosePorTipoPersonal(int idProyecto) {
+        int[] desglose = {0, 0, 0}; // [Ayudante Investigación, Técnico, Asistente]
+        
+        String sql = "SELECT tipoPersonal, COUNT(*) as cantidad " +
+                     "FROM formularios " +
+                     "WHERE id_proyecto = ? " +
+                     "GROUP BY tipoPersonal";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, idProyecto);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                String tipo = rs.getString("tipoPersonal");
+                int cantidad = rs.getInt("cantidad");
+                
+                if (tipo != null) {
+                    if (tipo.contains("Ayudante de Investigación")) {
+                        desglose[0] += cantidad;
+                    } else if (tipo.contains("Técnico")) {
+                        desglose[1] += cantidad;
+                    } else if (tipo.contains("Asistente")) {
+                        desglose[2] += cantidad;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al obtener desglose por tipo: " + e.getMessage());
+        }
+        
+        return desglose;
+    }
 }

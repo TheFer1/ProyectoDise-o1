@@ -5,6 +5,7 @@ import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Ventana principal del Sistema de Gestión Académica
@@ -73,7 +74,7 @@ public class SistemaGestionWindow extends JFrame {
         // Solo Director puede ver/editar sus proyectos
         if (puedeManejarProyectos()) {
             tabbedPane.addTab("📁 Mis Proyectos", crearPanelProyectos());
-            tabbedPane.addTab("� Guardar Avance", crearPanelGuardarAvance());
+            tabbedPane.addTab("� Enviar Avance", crearPanelGuardarAvance());
         }
         
         // Solo Jefatura puede ver formularios
@@ -887,6 +888,13 @@ public class SistemaGestionWindow extends JFrame {
         }
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         
+        // Panel de resumen de ayudantes (solo para Jefatura)
+        JPanel resumenPanel = null;
+        if (puedeManejarUsuarios()) {
+            resumenPanel = crearPanelResumenAyudantesEnFormularios();
+            panel.add(resumenPanel, BorderLayout.NORTH);
+        }
+        
         panel.add(centerPanel, BorderLayout.CENTER);
         
         cargarFormularios(modelo);
@@ -1607,5 +1615,297 @@ public class SistemaGestionWindow extends JFrame {
                 tieneFirmado
             });
         }
+    }
+    
+    /**
+     * Panel de Resumen de Ayudantes por Proyecto INTEGRADO EN FORMULARIOS
+     * Vista exclusiva para Jefatura mostrando cuántos ayudantes hay registrados
+     * desglosados por tipo de personal
+     */
+    private JPanel crearPanelResumenAyudantesEnFormularios() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createTitledBorder("📊 Resumen de Ayudantes por Proyecto"));
+        
+        // Panel superior con botón de actualización
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        JLabel lblInfo = new JLabel("Estado de registros y desglose por tipo de personal");
+        topPanel.add(lblInfo);
+        
+        JButton btnActualizarResumen = new JButton("🔄 Actualizar");
+        topPanel.add(btnActualizarResumen);
+        
+        // Tabla con desglose detallado
+        String[] columnas = {"Proyecto", "Código", "Director", 
+                            "Req.", "Registrados", "Faltantes",
+                            "👨‍🔬 Ayudantes", "🔧 Técnicos", "👨‍💼 Asistentes", "Estado"};
+        DefaultTableModel modelo = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
+        JTable tabla = new JTable(modelo);
+        tabla.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        tabla.setRowHeight(25);
+        tabla.setFont(new Font("Arial", Font.PLAIN, 10));
+        
+        JScrollPane scrollPane = new JScrollPane(tabla);
+        
+        // Panel inferior con estadísticas por tipo
+        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
+        statsPanel.setBorder(BorderFactory.createTitledBorder("Totales"));
+        
+        JLabel lblTotalProyectos = new JLabel("Proyectos: 0");
+        JLabel lblCompletados = new JLabel("✓ Completos: 0");
+        JLabel lblIncompletos = new JLabel("⚠ Incompletos: 0");
+        JLabel lblTotalAyudantes = new JLabel("👨‍🔬 Ayudantes: 0");
+        JLabel lblTotalTecnicos = new JLabel("🔧 Técnicos: 0");
+        JLabel lblTotalAsistentes = new JLabel("👨‍💼 Asistentes: 0");
+        
+        statsPanel.add(lblTotalProyectos);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblCompletados);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblIncompletos);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblTotalAyudantes);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblTotalTecnicos);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblTotalAsistentes);
+        
+        // Runnable para cargar datos
+        Runnable cargarDatos = () -> {
+            modelo.setRowCount(0);
+            List<Object[]> resumen = formularioDAO.obtenerResumenAyudantesPorProyecto();
+            
+            int totalProyectos = 0;
+            int completados = 0;
+            int incompletos = 0;
+            int totalAyudantesInv = 0;
+            int totalTecnicos = 0;
+            int totalAsistentes = 0;
+            
+            for (Object[] fila : resumen) {
+                int idProyecto = (Integer) fila[0];
+                int[] desglose = formularioDAO.obtenerDesglosePorTipoPersonal(idProyecto);
+                
+                Object[] filaCompleta = new Object[10];
+                filaCompleta[0] = fila[1]; // Nombre proyecto
+                filaCompleta[1] = fila[2]; // Código
+                filaCompleta[2] = fila[6]; // Director
+                filaCompleta[3] = fila[3]; // Requeridos
+                filaCompleta[4] = fila[4]; // Registrados
+                filaCompleta[5] = fila[5]; // Faltantes
+                filaCompleta[6] = desglose[0]; // Ayudantes de Investigación
+                filaCompleta[7] = desglose[1]; // Técnicos
+                filaCompleta[8] = desglose[2]; // Asistentes
+                filaCompleta[9] = fila[7]; // Estado
+                
+                modelo.addRow(filaCompleta);
+                totalProyectos++;
+                totalAyudantesInv += desglose[0];
+                totalTecnicos += desglose[1];
+                totalAsistentes += desglose[2];
+                
+                if ("✓ Completo".equals(fila[7])) {
+                    completados++;
+                } else {
+                    incompletos++;
+                }
+            }
+            
+            // Actualizar estadísticas
+            lblTotalProyectos.setText("Proyectos: " + totalProyectos);
+            lblCompletados.setText("✓ Completos: " + completados);
+            lblIncompletos.setText("⚠ Incompletos: " + incompletos);
+            lblTotalAyudantes.setText("👨‍🔬 Ayudantes: " + totalAyudantesInv);
+            lblTotalTecnicos.setText("🔧 Técnicos: " + totalTecnicos);
+            lblTotalAsistentes.setText("👨‍💼 Asistentes: " + totalAsistentes);
+        };
+        
+        // Evento del botón actualizar
+        btnActualizarResumen.addActionListener(e -> cargarDatos.run());
+        
+        // Evento de doble clic en la tabla para ver detalles de ayudantes
+        tabla.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                if (evt.getClickCount() == 2) {
+                    int row = tabla.getSelectedRow();
+                    if (row >= 0) {
+                        String nombreProyecto = (String) modelo.getValueAt(row, 0);
+                        // Obtener el ID del proyecto de la lista de resumen
+                        List<Object[]> resumen = formularioDAO.obtenerResumenAyudantesPorProyecto();
+                        for (Object[] fila : resumen) {
+                            if (nombreProyecto.equals(fila[1])) {
+                                mostrarDetallesAyudantesProyecto((Integer) fila[0], nombreProyecto);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Cargar datos al crear el panel
+        SwingUtilities.invokeLater(cargarDatos);
+        
+        // Armar el panel
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(statsPanel, BorderLayout.SOUTH);
+        
+        return panel;
+    }
+    
+    /**
+     * Muestra una ventana con los detalles de todos los ayudantes de un proyecto
+     * Desglosados por tipo de personal
+     */
+    private void mostrarDetallesAyudantesProyecto(int idProyecto, String nombreProyecto) {
+        JDialog dialog = new JDialog((java.awt.Frame) null, "Detalles de Ayudantes - " + nombreProyecto, true);
+        dialog.setSize(900, 600);
+        dialog.setLocationRelativeTo(null);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Panel superior con información del proyecto
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        Proyecto proyecto = proyectoDAO.obtenerPorId(idProyecto);
+        String infoText = "Proyecto: " + nombreProyecto;
+        if (proyecto != null) {
+            infoText += " | Código: " + proyecto.getCodigo() + 
+                       " | Director: " + proyectoDAO.obtenerNombreUsuario(proyecto.getIdUsuario()) +
+                       " | Ayudantes Requeridos: " + proyecto.getNumeroDeDayudantesDelProyecto();
+        }
+        infoPanel.add(new JLabel(infoText));
+        infoPanel.setBackground(new Color(240, 240, 240));
+        infoPanel.setBorder(BorderFactory.createEtchedBorder());
+        
+        // Panel de pestañas para cada tipo de personal
+        JTabbedPane tabbedPane = new JTabbedPane();
+        
+        // Obtener formularios del proyecto
+        List<Formulario> formularios = formularioDAO.buscarPorProyecto(idProyecto);
+        
+        // Separar por tipo
+        List<Formulario> ayudantesInv = new ArrayList<>();
+        List<Formulario> tecnicos = new ArrayList<>();
+        List<Formulario> asistentes = new ArrayList<>();
+        
+        for (Formulario f : formularios) {
+            String tipo = f.getTipoPersonal();
+            if (tipo != null) {
+                if (tipo.contains("Ayudante de Investigación")) {
+                    ayudantesInv.add(f);
+                } else if (tipo.contains("Técnico")) {
+                    tecnicos.add(f);
+                } else if (tipo.contains("Asistente")) {
+                    asistentes.add(f);
+                }
+            }
+        }
+        
+        // Tab 1: Ayudantes de Investigación
+        JPanel tabAyudantes = crearTablaAyudantes(ayudantesInv, "👨‍🔬 Ayudantes de Investigación (" + ayudantesInv.size() + ")");
+        tabbedPane.addTab("👨‍🔬 Ayudantes (" + ayudantesInv.size() + ")", tabAyudantes);
+        
+        // Tab 2: Técnicos
+        JPanel tabTecnicos = crearTablaAyudantes(tecnicos, "🔧 Técnicos en Investigación (" + tecnicos.size() + ")");
+        tabbedPane.addTab("🔧 Técnicos (" + tecnicos.size() + ")", tabTecnicos);
+        
+        // Tab 3: Asistentes
+        JPanel tabAsistentes = crearTablaAyudantes(asistentes, "👨‍💼 Asistentes de Investigación (" + asistentes.size() + ")");
+        tabbedPane.addTab("👨‍💼 Asistentes (" + asistentes.size() + ")", tabAsistentes);
+        
+        // Panel inferior con botones
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton btnExportar = new JButton("📊 Exportar");
+        JButton btnCerrar = new JButton("Cerrar");
+        
+        btnCerrar.addActionListener(e -> dialog.dispose());
+        btnExportar.addActionListener(e -> {
+            JOptionPane.showMessageDialog(dialog, "Funcionalidad de exportación en desarrollo", "Info", JOptionPane.INFORMATION_MESSAGE);
+        });
+        
+        btnPanel.add(btnExportar);
+        btnPanel.add(btnCerrar);
+        
+        mainPanel.add(infoPanel, BorderLayout.NORTH);
+        mainPanel.add(tabbedPane, BorderLayout.CENTER);
+        mainPanel.add(btnPanel, BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        dialog.setVisible(true);
+    }
+    
+    /**
+     * Crea un panel con tabla de ayudantes
+     */
+    private JPanel crearTablaAyudantes(List<Formulario> formularios, String titulo) {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        JLabel lblTitulo = new JLabel(titulo);
+        lblTitulo.setFont(new Font("Arial", Font.BOLD, 12));
+        
+        String[] columnas = {"#", "Nombre Completo", "Cédula", "Facultad", "Estado", "Fecha Registro"};
+        DefaultTableModel modelo = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
+        JTable tabla = new JTable(modelo);
+        tabla.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        tabla.setRowHeight(25);
+        tabla.setFont(new Font("Arial", Font.PLAIN, 11));
+        
+        int contador = 1;
+        for (Formulario f : formularios) {
+            modelo.addRow(new Object[]{
+                contador++,
+                f.getNombreDelAyudante() + " " + f.getApellidoDelAyudante(),
+                f.getCedula(),
+                f.getFacultad(),
+                f.getEstado(),
+                "Sin fecha"
+            });
+        }
+        
+        JScrollPane scrollPane = new JScrollPane(tabla);
+        
+        // Panel inferior con información
+        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel lblTotal = new JLabel("Total registrados: " + formularios.size());
+        lblTotal.setFont(new Font("Arial", Font.BOLD, 11));
+        
+        long aprobados = formularios.stream().filter(f -> "Aprobado".equals(f.getEstado())).count();
+        JLabel lblAprobados = new JLabel("✓ Aprobados: " + aprobados);
+        
+        long pendientes = formularios.stream().filter(f -> "Pendiente".equals(f.getEstado())).count();
+        JLabel lblPendientes = new JLabel("⏳ Pendientes: " + pendientes);
+        
+        long rechazados = formularios.stream().filter(f -> "Rechazado".equals(f.getEstado())).count();
+        JLabel lblRechazados = new JLabel("✗ Rechazados: " + rechazados);
+        
+        statsPanel.add(lblTotal);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblAprobados);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblPendientes);
+        statsPanel.add(new JSeparator(JSeparator.VERTICAL));
+        statsPanel.add(lblRechazados);
+        statsPanel.setBorder(BorderFactory.createEtchedBorder());
+        
+        panel.add(lblTitulo, BorderLayout.NORTH);
+        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(statsPanel, BorderLayout.SOUTH);
+        
+        return panel;
     }
 }

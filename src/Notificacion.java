@@ -18,11 +18,10 @@ public class Notificacion {
     private boolean leida; // Para marcar si fue leída
     
     // Configuración del servidor SMTP
-    private static final String SMTP_HOST = "smtp.gmail.com"; // Cambiar según tu proveedor
-    private static final String SMTP_PORT = "587";
-    private static final String EMAIL_FROM = "estalyn2casa@gmail.com"; // Cambiar por tu email
-    private static final String EMAIL_PASSWORD = "jzganmvechyphaqe"; // Cambiar por tu contraseña de aplicación
-    
+    private static final String SMTP_HOST = "smtp.gmail.com";
+    private static final String SMTP_PORT = "587"; // Puerto 587 con STARTTLS
+    private static final String EMAIL_FROM = "estalyn2casa@gmail.com";
+    private static final String EMAIL_PASSWORD = "zdclehrpxuvmjjte";
     // Notificador automático
     private static Timer timerNotificador;
     private static long INTERVALO_MILISEGUNDOS = 2 * 60 * 1000; // 2 minutos
@@ -148,13 +147,16 @@ public class Notificacion {
         }
         
         try {
-            // Configuración SMTP
             Properties props = new Properties();
             props.put("mail.smtp.host", SMTP_HOST);
             props.put("mail.smtp.port", SMTP_PORT);
             props.put("mail.smtp.auth", "true");
             props.put("mail.smtp.starttls.enable", "true");
-            
+            props.put("mail.smtp.starttls.required", "true");
+            props.put("mail.smtp.ssl.protocols", "TLSv1.2");
+            props.put("mail.smtp.connectiontimeout", "20000");
+            props.put("mail.smtp.timeout", "20000");
+            props.put("mail.smtp.writetimeout", "20000");   
             // Crear sesión
             Session session = Session.getInstance(props,
                 new Authenticator() {
