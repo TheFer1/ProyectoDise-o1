@@ -68,7 +68,7 @@ public class ExtractorPDF {
      * Busca la línea que contiene el nombre del campo y extrae el valor
      * @param texto Texto completo extraído del PDF
      * @param campoBuscado Campo a buscar
-     * @return Valor encontrado, o null si no existe
+     * @return Valor encontrado, o null si no existe 
      */
     private static String extraerValorDelTexto(String texto, String campoBuscado) {
         for (String linea : texto.split("\\r?\\n")) {
@@ -109,5 +109,70 @@ public class ExtractorPDF {
         }
         
         return 0;
+    }
+    
+    /**
+     * Extrae la fecha de inicio del periodo laboral del PDF
+     * @param parent Componente padre para el diálogo
+     * @return Fecha de inicio en formato texto, o null si no se encuentra
+     */
+    public static String extraerPeriodoLaboralDesdePDF(JFrame parent) {
+        String valor = extraerCampoDelPDF(parent, "PERÍODO LABORAL");
+        
+        if (valor != null && !valor.isEmpty()) {
+            // Buscar la primera fecha en formato dd/mm/yyyy o dd/mm/aa
+            // Patrón: uno o dos dígitos, /, uno o dos dígitos, /, 2 o 4 dígitos
+            String patron = "(\\d{1,2}/\\d{1,2}/\\d{2,4})";
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(patron);
+            java.util.regex.Matcher matcher = pattern.matcher(valor);
+            
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Extrae la fecha de fin del periodo laboral del PDF
+     * @param parent Componente padre para el diálogo
+     * @return Fecha de fin en formato texto, o null si no se encuentra
+     */
+    public static String extraerPeriodoLaboralHastaPDF(JFrame parent) {
+        String valor = extraerCampoDelPDF(parent, "PERÍODO LABORAL");
+        
+        if (valor != null && !valor.isEmpty()) {
+            // Buscar todas las fechas en formato dd/mm/yyyy o dd/mm/aa
+            String patron = "(\\d{1,2}/\\d{1,2}/\\d{2,4})";
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(patron);
+            java.util.regex.Matcher matcher = pattern.matcher(valor);
+            
+            // Buscar la segunda fecha (después de "HASTA")
+            String primeraFecha = null;
+            String segundaFecha = null;
+            
+            if (matcher.find()) {
+                primeraFecha = matcher.group(1);
+            }
+            
+            if (matcher.find()) {
+                segundaFecha = matcher.group(1);
+                return segundaFecha;
+            }
+            
+            // Si solo hay una fecha y el texto contiene "HASTA", podría ser la fecha final
+            if (primeraFecha != null && valor.contains("HASTA")) {
+                // Buscar la fecha después de "HASTA"
+                int indexHasta = valor.indexOf("HASTA");
+                String despuesHasta = valor.substring(indexHasta);
+                matcher = pattern.matcher(despuesHasta);
+                if (matcher.find()) {
+                    return matcher.group(1);
+                }
+            }
+        }
+        
+        return null;
     }
 }

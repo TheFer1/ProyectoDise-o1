@@ -635,7 +635,8 @@ public class SistemaGestionWindow extends JFrame {
             JTextField txtApellidoAyudante = new JTextField(15);
             JTextField txtCedulaAyudante = new JTextField(15);
             JTextField txtFacultadAyudante = new JTextField(15);
-            JSpinner spnNumAyudantes = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+            JTextField txtPeriodoDesde = new JTextField(15);
+            JTextField txtPeriodoHasta = new JTextField(15);
             
             // Cargar proyectos del director
             List<Proyecto> proyectosDirector = proyectoDAO.obtenerPorDirector(usuarioActual.getId());
@@ -654,38 +655,45 @@ public class SistemaGestionWindow extends JFrame {
             formPanel.add(cmbTipoPersonal, gbc);
             
             gbc.gridx = 0; gbc.gridy = 2;
-            formPanel.add(new JLabel("N° de Ayudantes:"), gbc);
-            gbc.gridx = 1;
-            formPanel.add(spnNumAyudantes, gbc);
-            
-            gbc.gridx = 0; gbc.gridy = 3;
             formPanel.add(new JLabel("Nombre:"), gbc);
             gbc.gridx = 1;
             formPanel.add(txtNombreAyudante, gbc);
             
-            gbc.gridx = 0; gbc.gridy = 4;
+            gbc.gridx = 0; gbc.gridy = 3;
             formPanel.add(new JLabel("Apellido:"), gbc);
             gbc.gridx = 1;
             formPanel.add(txtApellidoAyudante, gbc);
             
-            gbc.gridx = 0; gbc.gridy = 5;
+            gbc.gridx = 0; gbc.gridy = 4;
             formPanel.add(new JLabel("Cédula:"), gbc);
             gbc.gridx = 1;
             formPanel.add(txtCedulaAyudante, gbc);
             
-            gbc.gridx = 0; gbc.gridy = 6;
+            gbc.gridx = 0; gbc.gridy = 5;
             formPanel.add(new JLabel("Facultad:"), gbc);
             gbc.gridx = 1;
             formPanel.add(txtFacultadAyudante, gbc);
             
+            gbc.gridx = 0; gbc.gridy = 6;
+            formPanel.add(new JLabel("Periodo Laboral Desde:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(txtPeriodoDesde, gbc);
+            
+            gbc.gridx = 0; gbc.gridy = 7;
+            formPanel.add(new JLabel("Periodo Laboral Hasta:"), gbc);
+            gbc.gridx = 1;
+            formPanel.add(txtPeriodoHasta, gbc);
+            
             JPanel btnAyudantesPanel = new JPanel(new FlowLayout());
             JButton btnGuardarAyudante = new JButton("✓ Guardar");
             JButton btnLimpiarAyudante = new JButton("🔄 Limpiar");
+            JButton btnExtraerPDF = new JButton("📄 Extraer desde PDF");
             
             btnAyudantesPanel.add(btnGuardarAyudante);
             btnAyudantesPanel.add(btnLimpiarAyudante);
+            btnAyudantesPanel.add(btnExtraerPDF);
             
-            gbc.gridx = 0; gbc.gridy = 7;
+            gbc.gridx = 0; gbc.gridy = 8;
             gbc.gridwidth = 2;
             formPanel.add(btnAyudantesPanel, gbc);
             
@@ -698,15 +706,17 @@ public class SistemaGestionWindow extends JFrame {
 
                 String proyectoSel = (String) cbProyectoAyudantes.getSelectedItem();
                 int idProyecto = Integer.parseInt(proyectoSel.split(" - ")[0]);
-                int numAyudantes = (int) spnNumAyudantes.getValue();
+                int numAyudantes = 1; // Valor fijo en 1
                 String nombre = txtNombreAyudante.getText().trim();
                 String apellido = txtApellidoAyudante.getText().trim();
                 String cedula = txtCedulaAyudante.getText().trim();
                 String facultad = txtFacultadAyudante.getText().trim();
                 String tipoPersonal = (String) cmbTipoPersonal.getSelectedItem();
+                String periodoDesde = txtPeriodoDesde.getText().trim();
+                String periodoHasta = txtPeriodoHasta.getText().trim();
 
                 if (nombre.isEmpty() || apellido.isEmpty() || cedula.isEmpty() || facultad.isEmpty()) {
-                    JOptionPane.showMessageDialog(panel, "Complete todos los campos", "Error", JOptionPane.WARNING_MESSAGE);
+                    JOptionPane.showMessageDialog(panel, "Complete todos los campos obligatorios", "Error", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
@@ -714,6 +724,8 @@ public class SistemaGestionWindow extends JFrame {
                 Formulario formulario = new Formulario(numAyudantes, nombre, apellido, cedula, facultad);
                 formulario.setIdProyecto(idProyecto);
                 formulario.setTipoPersonal(tipoPersonal);
+                formulario.setPeriodoLaboralDesde(periodoDesde);
+                formulario.setPeriodoLaboralHasta(periodoHasta);
                 
                 // Guardar en BD
                 if (formularioDAO.insertar(formulario)) {
@@ -786,7 +798,8 @@ public class SistemaGestionWindow extends JFrame {
                     txtApellidoAyudante.setText("");
                     txtCedulaAyudante.setText("");
                     txtFacultadAyudante.setText("");
-                    spnNumAyudantes.setValue(1);
+                    txtPeriodoDesde.setText("");
+                    txtPeriodoHasta.setText("");
                     cmbTipoPersonal.setSelectedIndex(0);
                     
                     // Recargar tabla de formularios
@@ -801,7 +814,28 @@ public class SistemaGestionWindow extends JFrame {
                 txtApellidoAyudante.setText("");
                 txtCedulaAyudante.setText("");
                 txtFacultadAyudante.setText("");
-                spnNumAyudantes.setValue(1);
+                txtPeriodoDesde.setText("");
+                txtPeriodoHasta.setText("");
+            });
+            
+            // Evento para extraer datos del PDF
+            btnExtraerPDF.addActionListener(e -> {
+                String fechaDesde = ExtractorPDF.extraerPeriodoLaboralDesdePDF(this);
+                String fechaHasta = ExtractorPDF.extraerPeriodoLaboralHastaPDF(this);
+                
+                if (fechaDesde != null && !fechaDesde.isEmpty()) {
+                    txtPeriodoDesde.setText(fechaDesde);
+                }
+                
+                if (fechaHasta != null && !fechaHasta.isEmpty()) {
+                    txtPeriodoHasta.setText(fechaHasta);
+                }
+                
+                if ((fechaDesde != null && !fechaDesde.isEmpty()) || (fechaHasta != null && !fechaHasta.isEmpty())) {
+                    JOptionPane.showMessageDialog(panel, "✓ Fechas de periodo laboral extraídas del PDF", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(panel, "No se pudieron extraer las fechas del PDF", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                }
             });
             
             formularioAyudantesPanel.add(formPanel, BorderLayout.CENTER);

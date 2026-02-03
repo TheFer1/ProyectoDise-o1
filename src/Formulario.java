@@ -12,6 +12,8 @@ public class Formulario {
     private String estado; // Pendiente, Aprobado, Rechazado
     private int idProyecto; // ID del proyecto asociado
     private String tipoPersonal; // Ayudante, Ayudante de Investigación, Técnico en Investigación, Asistente de Investigación
+    private String periodoLaboralDesde; // Fecha inicio del periodo laboral
+    private String periodoLaboralHasta; // Fecha fin del periodo laboral
     
     // Constructores
     public Formulario() {
@@ -199,6 +201,22 @@ public class Formulario {
         this.tipoPersonal = tipoPersonal;
     }
     
+    public String getPeriodoLaboralDesde() {
+        return periodoLaboralDesde;
+    }
+    
+    public void setPeriodoLaboralDesde(String periodoLaboralDesde) {
+        this.periodoLaboralDesde = periodoLaboralDesde;
+    }
+    
+    public String getPeriodoLaboralHasta() {
+        return periodoLaboralHasta;
+    }
+    
+    public void setPeriodoLaboralHasta(String periodoLaboralHasta) {
+        this.periodoLaboralHasta = periodoLaboralHasta;
+    }
+    
     @Override
     public String toString() {
         return "Formulario{" +
@@ -211,6 +229,8 @@ public class Formulario {
                 ", estado='" + estado + '\'' +
                 ", idProyecto=" + idProyecto +
                 ", tipoPersonal='" + tipoPersonal + '\'' +
+                ", periodoLaboralDesde='" + periodoLaboralDesde + '\'' +
+                ", periodoLaboralHasta='" + periodoLaboralHasta + '\'' +
                 '}';
     }
 }

@@ -104,3 +104,6 @@ ALTER TABLE avances ADD COLUMN archivoFirmado VARCHAR(255);
 
 -- Agregar columna tipoPersonal a la tabla formularios
 ALTER TABLE formularios ADD COLUMN tipoPersonal VARCHAR(100) DEFAULT 'Ayudante';
+
+ALTER TABLE formularios ADD COLUMN periodo_laboral_desde TEXT;
+ALTER TABLE formularios ADD COLUMN periodo_laboral_hasta TEXT;

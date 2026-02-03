@@ -16,7 +16,7 @@ public class FormularioDAO {
      * Insertar un nuevo formulario
      */
     public boolean insertar(Formulario formulario) {
-        String sql = "INSERT INTO formularios(numero_ayudantes, nombre_ayudante, apellido_ayudante, cedula, facultad, estado, id_proyecto, tipoPersonal) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO formularios(numero_ayudantes, nombre_ayudante, apellido_ayudante, cedula, facultad, estado, id_proyecto, tipoPersonal, periodo_laboral_desde, periodo_laboral_hasta) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, formulario.getNumeroDeAyudantes());
@@ -27,6 +27,8 @@ public class FormularioDAO {
             pstmt.setString(6, formulario.getEstado());
             pstmt.setInt(7, formulario.getIdProyecto());
             pstmt.setString(8, formulario.getTipoPersonal());
+            pstmt.setString(9, formulario.getPeriodoLaboralDesde());
+            pstmt.setString(10, formulario.getPeriodoLaboralHasta());
             pstmt.executeUpdate();
             System.out.println("Formulario insertado para: " + formulario.getNombreDelAyudante());
             return true;
@@ -89,6 +91,8 @@ public class FormularioDAO {
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
                 formulario.setTipoPersonal(rs.getString("tipoPersonal"));
+                formulario.setPeriodoLaboralDesde(rs.getString("periodo_laboral_desde"));
+                formulario.setPeriodoLaboralHasta(rs.getString("periodo_laboral_hasta"));
                 return formulario;
             }
         } catch (SQLException e) {
@@ -102,7 +106,7 @@ public class FormularioDAO {
      * Actualizar formulario
      */
     public boolean actualizar(Formulario formulario) {
-        String sql = "UPDATE formularios SET numero_ayudantes = ?, nombre_ayudante = ?, apellido_ayudante = ?, cedula = ?, facultad = ?, estado = ?, id_proyecto = ?, tipoPersonal = ? WHERE id = ?";
+        String sql = "UPDATE formularios SET numero_ayudantes = ?, nombre_ayudante = ?, apellido_ayudante = ?, cedula = ?, facultad = ?, estado = ?, id_proyecto = ?, tipoPersonal = ?, periodo_laboral_desde = ?, periodo_laboral_hasta = ? WHERE id = ?";
         
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setInt(1, formulario.getNumeroDeAyudantes());
@@ -113,7 +117,9 @@ public class FormularioDAO {
             pstmt.setString(6, formulario.getEstado());
             pstmt.setInt(7, formulario.getIdProyecto());
             pstmt.setString(8, formulario.getTipoPersonal());
-            pstmt.setInt(9, formulario.getId());
+            pstmt.setString(9, formulario.getPeriodoLaboralDesde());
+            pstmt.setString(10, formulario.getPeriodoLaboralHasta());
+            pstmt.setInt(11, formulario.getId());
             
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
@@ -162,6 +168,8 @@ public class FormularioDAO {
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
                 formulario.setTipoPersonal(rs.getString("tipoPersonal"));
+                formulario.setPeriodoLaboralDesde(rs.getString("periodo_laboral_desde"));
+                formulario.setPeriodoLaboralHasta(rs.getString("periodo_laboral_hasta"));
                 formularios.add(formulario);
             }
         } catch (SQLException e) {
@@ -197,6 +205,8 @@ public class FormularioDAO {
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
                 formulario.setTipoPersonal(rs.getString("tipoPersonal"));
+                formulario.setPeriodoLaboralDesde(rs.getString("periodo_laboral_desde"));
+                formulario.setPeriodoLaboralHasta(rs.getString("periodo_laboral_hasta"));
                 formularios.add(formulario);
             }
         } catch (SQLException e) {
@@ -225,6 +235,8 @@ public class FormularioDAO {
                 );
                 formulario.setIdProyecto(rs.getInt("id_proyecto"));
                 formulario.setTipoPersonal(rs.getString("tipoPersonal"));
+                formulario.setPeriodoLaboralDesde(rs.getString("periodo_laboral_desde"));
+                formulario.setPeriodoLaboralHasta(rs.getString("periodo_laboral_hasta"));
                 formularios.add(formulario);
             }
         } catch (SQLException e) {
